@@ -12,7 +12,11 @@ import {
   ChevronLeft,
   ChevronRight,
   User,
-  ShieldCheck
+  ShieldCheck,
+  BarChart3,
+  Settings,
+  Bell,
+  Search
 } from "lucide-react";
 
 // Component Registry Imports
@@ -23,13 +27,13 @@ import AuctioneerManageAssets from "@/components/dashboard/AuctioneerManageAsset
 
 export default function DashboardLayoutFrame({ user, serializedAuctionItems, isAuctioneer }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activeTab, setActiveTab] = useState("live-console"); // Defaults to real-time interactions console
+  const [activeTab, setActiveTab] = useState("live-auctions");
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [liveCount, setLiveCount] = useState(0);
-  
+  const [searchQuery, setSearchQuery] = useState("");
+
   const dropdownRef = useRef(null);
 
-  // Hook into incoming items list to continuously manage the floating tab badge indicators 
   useEffect(() => {
     if (serializedAuctionItems) {
       const activeRooms = serializedAuctionItems.filter(
@@ -39,7 +43,6 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
     }
   }, [serializedAuctionItems]);
 
-  // Close the mobile profile dropdown menu automatically if user clicks on outside workspace area
   useEffect(() => {
     function handleOutsideClick(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -52,26 +55,49 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
 
   const userInitials = user?.name ? user.name.substring(0, 2).toUpperCase() : "OP";
 
+  const getTabLabel = (tab) => {
+    const labels = {
+      "dashboard": "Dashboard",
+      "live-auctions": isAuctioneer ? "Live Auction Control" : "Live Auction Floor",
+      "my-bids": "My Bids",
+      "manage-listings": "Manage Listings",
+      "payments": "Payments & Deposits",
+      "reports": "Reports",
+      "settings": "Settings"
+    };
+    return labels[tab] || tab;
+  };
+
+  const navItems = [
+    { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", show: true },
+    { id: "live-auctions", icon: Tv, label: isAuctioneer ? "Live Auction Control" : "Live Auction Floor", show: true, badge: liveCount },
+    { id: "my-bids", icon: Gavel, label: "My Bids", show: !isAuctioneer },
+    { id: "manage-listings", icon: FolderGit, label: "Manage Listings", show: isAuctioneer },
+    { id: "payments", icon: Wallet, label: "Payments & Deposits", show: true },
+    { id: "reports", icon: BarChart3, label: "Reports", show: isAuctioneer },
+    { id: "settings", icon: Settings, label: "Settings", show: true },
+  ];
+
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 font-sans fixed inset-0 flex-col md:flex-row">
-      
+    <div className="flex h-screen w-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text)] font-sans fixed inset-0 flex-col md:flex-row">
+
       {/* ========================================================
-          DESKTOP SIDEBAR NAVIGATION (Hidden on Mobile screens)
+          DESKTOP SIDEBAR NAVIGATION
          ======================================================== */}
       <aside 
-        className={`hidden md:flex flex-col h-full bg-white border-r border-slate-200 transition-all duration-300 ease-in-out relative shrink-0 z-50 ${
+        className={`hidden md:flex flex-col h-full bg-[var(--color-card)] border-r border-[var(--color-border)] transition-all duration-300 ease-in-out relative shrink-0 z-50 ${
           isCollapsed ? "w-16" : "w-64"
         }`}
       >
         {/* Sidebar Brand Header */}
-        <div className="h-16 flex items-center gap-3 px-4 border-b border-slate-100 overflow-hidden shrink-0">
-          <div className="flex aspect-square h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm shadow-indigo-600/20">
+        <div className="h-16 flex items-center gap-3 px-4 border-b border-[var(--color-border)] overflow-hidden shrink-0">
+          <div className="flex aspect-square h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--color-secondary)] to-[var(--color-primary)] text-white shadow-sm shadow-[var(--color-primary)]/20">
             <Gavel className="w-4 h-4" />
           </div>
           {!isCollapsed && (
             <div className="flex flex-col gap-0.5 leading-none">
-              <span className="font-bold text-xs uppercase tracking-tight text-slate-900">Trust Terminal</span>
-              <span className="text-[10px] text-slate-400 font-semibold">Operations v2.0</span>
+              <span className="font-bold text-xs uppercase tracking-tight text-[var(--color-text)]">TrustBid</span>
+              <span className="text-[10px] text-[var(--color-muted)] font-semibold">Auction Platform</span>
             </div>
           )}
         </div>
@@ -79,149 +105,134 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
         {/* Desktop Navigation Links */}
         <div className="flex-1 overflow-y-auto px-3 py-6">
           <nav className="space-y-1">
-            <button
-              onClick={() => setActiveTab("dashboard")}
-              className={`w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-colors ${
-                activeTab === "dashboard" ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-              }`}
-            >
-              <LayoutDashboard className="w-4 h-4 shrink-0" />
-              {!isCollapsed && <span className="truncate">Dashboard Overview</span>}
-            </button>
-
-            <button
-              onClick={() => setActiveTab("live-console")}
-              className={`w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-colors relative ${
-                activeTab === "live-console" ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-              }`}
-            >
-              <Tv className="w-4 h-4 shrink-0" />
-              {!isCollapsed && (
-                <span className="truncate">
-                  {isAuctioneer ? "Live Controller Console" : "Live Streaming Floor"}
-                </span>
-              )}
-              {!isCollapsed && liveCount > 0 && (
-                <span className="absolute right-3 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">
-                  {liveCount}
-                </span>
-              )}
-            </button>
-
-            {isAuctioneer && (
+            {navItems.filter(item => item.show).map((item) => (
               <button
-                onClick={() => setActiveTab("manage-assets")}
-                className={`w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-colors ${
-                  activeTab === "manage-assets" ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-xl transition-all duration-300 relative group ${
+                  activeTab === item.id 
+                    ? "bg-[var(--color-secondary)]/20 text-[var(--color-primary)] border border-[var(--color-primary)]/20" 
+                    : "text-[var(--color-muted)] hover:bg-[var(--color-input)] hover:text-[var(--color-text)]"
                 }`}
               >
-                <FolderGit className="w-4 h-4 shrink-0" />
-                {!isCollapsed && <span className="truncate">Manage Assets Registry</span>}
+                <item.icon className={`w-4 h-4 shrink-0 transition-colors ${activeTab === item.id ? "text-[var(--color-primary)]" : "text-[var(--color-muted)] group-hover:text-[var(--color-text)]"}`} />
+                {!isCollapsed && <span className="truncate">{item.label}</span>}
+                {!isCollapsed && item.badge > 0 && (
+                  <span className="absolute right-3 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold animate-pulse">
+                    {item.badge}
+                  </span>
+                )}
               </button>
-            )}
-
-            <button
-              onClick={() => setActiveTab("payments")}
-              className={`w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-colors ${
-                activeTab === "payments" ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-              }`}
-            >
-              <Wallet className="w-4 h-4 shrink-0" />
-              {!isCollapsed && <span className="truncate">Payments Ledger</span>}
-            </button>
+            ))}
           </nav>
         </div>
 
-        {/* Sidebar Fixed Base Operator profile Badge */}
-        <div className="p-3 border-t border-slate-100 bg-slate-50/50 shrink-0">
-          <div className="flex items-center gap-2 rounded-xl bg-slate-100 p-1.5 overflow-hidden">
-            <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-xs shrink-0">
+        {/* Sidebar Profile Badge */}
+        <div className="p-3 border-t border-[var(--color-border)] bg-[var(--color-input)]/30 shrink-0">
+          <div className="flex items-center gap-2 rounded-xl bg-[var(--color-input)] p-1.5 overflow-hidden border border-[var(--color-border)] hover:border-[var(--color-primary)]/30 transition-colors cursor-pointer">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--color-secondary)] to-[var(--color-primary)] text-[var(--color-bg)] flex items-center justify-center font-black text-xs shrink-0">
               {userInitials}
             </div>
             {!isCollapsed && (
               <div className="flex flex-col text-left overflow-hidden">
-                <span className="text-[11px] font-bold text-slate-800 truncate">{user?.name || "Operator"}</span>
-                <span className="text-[9px] text-slate-400 truncate max-w-[120px]">{user?.email}</span>
+                <span className="text-[11px] font-bold text-[var(--color-text)] truncate">{user?.name || "User"}</span>
+                <span className="text-[9px] text-[var(--color-muted)] truncate max-w-[120px]">{user?.email}</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Collapse Handle Toggle Button */}
+        {/* Collapse Toggle */}
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-20 bg-white border border-slate-200 rounded-full p-1 text-slate-500 hover:text-slate-900 shadow-sm hidden md:block z-50 hover:bg-slate-50"
+          className="absolute -right-3 top-20 bg-[var(--color-card)] border border-[var(--color-border)] rounded-full p-1.5 text-[var(--color-muted)] hover:text-[var(--color-primary)] shadow-lg hidden md:block z-50 hover:bg-[var(--color-input)] transition-all duration-300 hover:scale-110"
         >
           {isCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
         </button>
       </aside>
 
       {/* ========================================================
-          MAIN SYSTEM VIEWPORT CORE ENGINE
+          MAIN VIEWPORT
          ======================================================== */}
       <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden mb-16 md:mb-0">
-        
-        {/* GLOBAL SCREEN TOP APP BAR */}
-        <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 md:px-6 relative z-40">
-          <div className="flex items-center gap-2">
-            <div className="md:hidden flex aspect-square h-8 w-8 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
+
+        {/* TOP APP BAR */}
+        <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-[var(--color-border)] bg-[var(--color-card)] px-4 md:px-6 relative z-40">
+          <div className="flex items-center gap-3 flex-1">
+            <div className="md:hidden flex aspect-square h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--color-secondary)] to-[var(--color-primary)] text-white shadow-sm">
               <Gavel className="w-4 h-4" />
             </div>
-            <div>
-              <h1 className="text-xs md:text-sm font-bold text-slate-900 tracking-tight">Trust Terminal Platform</h1>
-              <p className="text-[9px] md:text-[10px] text-slate-500 font-semibold">Operations Center Desk</p>
+
+            {/* Search Bar */}
+            <div className="hidden sm:flex items-center flex-1 max-w-md">
+              <div className="relative w-full">
+                <Search className="w-4 h-4 text-[var(--color-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search auctions, listings..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-xl py-2 pl-10 pr-4 text-sm text-[var(--color-text)] placeholder-[var(--color-muted)] focus:outline-none focus:border-[var(--color-primary)]/40 focus:ring-1 focus:ring-[var(--color-primary)]/20 transition-all"
+                />
+              </div>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Desktop Dynamic Page View Tag Badge */}
-            <span className="hidden md:inline-flex items-center text-[10px] bg-slate-100 font-bold px-2.5 py-1 rounded-md border border-slate-200 text-slate-600 uppercase tracking-wider">
-              {activeTab.replace("-", " ")}
+            {/* Active Tab Badge */}
+            <span className="hidden md:inline-flex items-center text-[10px] bg-[var(--color-input)] font-bold px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-primary)] uppercase tracking-wider">
+              {getTabLabel(activeTab)}
             </span>
 
-            {/* PERMANENT DESKTOP VIEW ACTION LOGOUT */}
+            {/* Notification Bell */}
+            <button className="relative w-9 h-9 rounded-xl bg-[var(--color-input)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-muted)] hover:text-[var(--color-primary)] hover:border-[var(--color-primary)]/30 transition-all duration-300">
+              <Bell className="w-4 h-4" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[var(--color-primary)] rounded-full animate-pulse" />
+            </button>
+
+            {/* Desktop Logout */}
             <div className="hidden md:block">
-              <Link href="/api/auth/signout" className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-600 hover:text-white bg-slate-100 hover:bg-red-600 rounded-lg transition-all border border-slate-200 shadow-sm">
-                <LogOut className="w-3 h-3" /> Log Out
+              <Link href="/api/auth/signout" className="inline-flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-[var(--color-muted)] hover:text-white bg-[var(--color-input)] hover:bg-red-500/80 rounded-xl transition-all border border-[var(--color-border)] hover:border-red-500/50 shadow-sm">
+                <LogOut className="w-3 h-3" /> Exit
               </Link>
             </div>
 
-            {/* 🔴 MOBILE INTERACTIVE PROFILE AVATAR TRIGGER CIRCLE */}
+            {/* Mobile Profile Avatar */}
             <div className="block md:hidden relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className={`w-9 h-9 rounded-full font-black text-xs flex items-center justify-center border transition-all active:scale-95 focus:outline-none ${
+                className={`w-9 h-9 rounded-full font-black text-xs flex items-center justify-center border-2 transition-all active:scale-95 focus:outline-none ${
                   isProfileDropdownOpen 
-                    ? "bg-indigo-600 border-indigo-700 text-white ring-4 ring-indigo-100" 
-                    : "bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700"
+                    ? "bg-gradient-to-br from-[var(--color-secondary)] to-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-bg)] ring-4 ring-[var(--color-primary)]/20" 
+                    : "bg-[var(--color-input)] hover:bg-[var(--color-border)] border-[var(--color-border)] text-[var(--color-text)]"
                 }`}
               >
                 {userInitials}
               </button>
 
-              {/* 🔽 RESPONSIVE APP DROPDOWN OVERLAY PORTAL */}
+              {/* Mobile Dropdown */}
               {isProfileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-2xl py-2 z-[100] transform origin-top-right animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="px-3.5 py-2 border-b border-slate-100">
-                    <p className="text-[11px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                <div className="absolute right-0 mt-3 w-64 bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl shadow-2xl shadow-black/20 py-3 z-[100] transform origin-top-right">
+                  <div className="px-4 py-3 border-b border-[var(--color-border)]">
+                    <p className="text-[11px] font-black uppercase tracking-wider text-[var(--color-muted)] flex items-center gap-1.5 mb-2">
                       <User className="w-3 h-3" /> Profile Info
                     </p>
-                    <p className="text-xs font-bold text-slate-800 truncate mt-1">{user?.name || "System Operator"}</p>
-                    <p className="text-[10px] text-slate-500 truncate">{user?.email || "No email assigned"}</p>
+                    <p className="text-sm font-bold text-[var(--color-text)] truncate">{user?.name || "User"}</p>
+                    <p className="text-[10px] text-[var(--color-muted)] truncate">{user?.email || "No email"}</p>
                   </div>
-                  
-                  <div className="px-3.5 py-2 border-b border-slate-100 bg-slate-50/50">
-                    <p className="text-[10px] font-semibold text-slate-600 flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                      Clearance: <span className="font-bold text-slate-900">{isAuctioneer ? "Auctioneer (Admin)" : "Verified Bidder"}</span>
+
+                  <div className="px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-input)]/30">
+                    <p className="text-[10px] font-semibold text-[var(--color-muted)] flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-[var(--color-primary)]" />
+                      Role: <span className="font-bold text-[var(--color-text)]">{isAuctioneer ? "Auctioneer" : "Bidder"}</span>
                     </p>
                   </div>
 
-                  <div className="px-2 pt-1.5 pb-0.5">
+                  <div className="px-3 pt-2 pb-1">
                     <Link 
                       href="/api/auth/signout" 
                       onClick={() => setIsProfileDropdownOpen(false)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:text-white bg-red-50 hover:bg-red-600 rounded-lg transition-colors border border-red-100 hover:border-red-600 shadow-sm"
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-bold text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500 rounded-xl transition-all border border-red-500/20 hover:border-red-500"
                     >
                       <LogOut className="w-3.5 h-3.5 shrink-0" />
                       <span>Disconnect Session</span>
@@ -234,19 +245,57 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
           </div>
         </header>
 
-        {/* DYNAMIC COMPONENT OVERLAY ROUTER ROUTING LOGIC */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8 bg-slate-50">
+        {/* DYNAMIC CONTENT ROUTER */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8 bg-[var(--color-bg)]">
           <div className="mx-auto w-full max-w-7xl">
-            
-            {/* Overview / General Analytics Tab Panel */}
+
+            {/* Dashboard Overview */}
             {activeTab === "dashboard" && (
               <div className="space-y-6">
                 {isAuctioneer ? (
-                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-                    <h2 className="text-sm font-bold text-slate-900">Operational Workspace Dashboard</h2>
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      Welcome back administrator. Use your bottom console tray cards or sidebar tabs to launch property assets into the live WebRTC streaming floor pipeline.
-                    </p>
+                  <div className="bg-[var(--color-card)] p-6 rounded-2xl border border-[var(--color-border)] shadow-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="text-lg font-bold text-[var(--color-text)]">Auctioneer Dashboard</h2>
+                        <p className="text-xs text-[var(--color-muted)] mt-1">
+                          Manage listings, monitor live bids, and track payments
+                        </p>
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-[var(--color-secondary)]/20 flex items-center justify-center">
+                        <BarChart3 className="w-5 h-5 text-[var(--color-primary)]" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="bg-[var(--color-input)] p-5 rounded-xl border border-[var(--color-border)] hover:border-[var(--color-primary)]/30 transition-all group">
+                        <p className="text-[10px] text-[var(--color-muted)] uppercase font-bold tracking-wider mb-2">Active Listings</p>
+                        <p className="text-3xl font-extrabold text-[var(--color-primary)] group-hover:scale-105 transition-transform">{liveCount}</p>
+                        <div className="w-full h-1 bg-[var(--color-border)] rounded-full mt-3 overflow-hidden">
+                          <div className="h-full bg-[var(--color-primary)] rounded-full" style={{ width: '65%' }} />
+                        </div>
+                      </div>
+                      <div className="bg-[var(--color-input)] p-5 rounded-xl border border-[var(--color-border)] hover:border-[var(--color-primary)]/30 transition-all group">
+                        <p className="text-[10px] text-[var(--color-muted)] uppercase font-bold tracking-wider mb-2">Total Bids</p>
+                        <p className="text-3xl font-extrabold text-[var(--color-primary)] group-hover:scale-105 transition-transform">1,240</p>
+                        <div className="w-full h-1 bg-[var(--color-border)] rounded-full mt-3 overflow-hidden">
+                          <div className="h-full bg-[var(--color-secondary)] rounded-full" style={{ width: '82%' }} />
+                        </div>
+                      </div>
+                      <div className="bg-[var(--color-input)] p-5 rounded-xl border border-[var(--color-border)] hover:border-[var(--color-primary)]/30 transition-all group">
+                        <p className="text-[10px] text-[var(--color-muted)] uppercase font-bold tracking-wider mb-2">Revenue</p>
+                        <p className="text-3xl font-extrabold text-[var(--color-primary)] group-hover:scale-105 transition-transform">MK 45M</p>
+                        <div className="w-full h-1 bg-[var(--color-border)] rounded-full mt-3 overflow-hidden">
+                          <div className="h-full bg-[var(--color-primary)] rounded-full" style={{ width: '45%' }} />
+                        </div>
+                      </div>
+                      <div className="bg-[var(--color-input)] p-5 rounded-xl border border-[var(--color-border)] hover:border-[var(--color-primary)]/30 transition-all group">
+                        <p className="text-[10px] text-[var(--color-muted)] uppercase font-bold tracking-wider mb-2">Success Rate</p>
+                        <p className="text-3xl font-extrabold text-[var(--color-primary)] group-hover:scale-105 transition-transform">98%</p>
+                        <div className="w-full h-1 bg-[var(--color-border)] rounded-full mt-3 overflow-hidden">
+                          <div className="h-full bg-[var(--color-secondary)] rounded-full" style={{ width: '98%' }} />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <BidderDashboard />
@@ -254,30 +303,169 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
               </div>
             )}
 
-            {/* Live Operations Floor - Swaps display views natively based on session access role */}
-            {activeTab === "live-console" && (
+            {/* Live Auctions */}
+            {activeTab === "live-auctions" && (
               isAuctioneer ? (
                 <AuctioneerLiveConsole 
                   auctionItems={serializedAuctionItems} 
-                  onItemsUpdate={(updated) => console.log("Broadcaster sync state: ", updated.length)}
+                  onItemsUpdate={(updated) => console.log("Broadcaster sync: ", updated.length)}
                 />
               ) : (
                 <BidderLiveConsole auctionItems={serializedAuctionItems} />
               )
             )}
 
-            {/* Asset Management System (Exclusively constrained to admin instances) */}
-            {activeTab === "manage-assets" && isAuctioneer && (
+            {/* My Bids (Bidder only) */}
+            {activeTab === "my-bids" && !isAuctioneer && (
+              <div className="bg-[var(--color-card)] p-6 rounded-2xl border border-[var(--color-border)] shadow-sm">
+                <h2 className="text-lg font-bold text-[var(--color-text)] mb-2">My Active Bids</h2>
+                <p className="text-xs text-[var(--color-muted)] mb-6">Track your current bids and auction participation history.</p>
+                <div className="p-12 border border-dashed border-[var(--color-border)] rounded-xl bg-[var(--color-input)]/30 text-center">
+                  <Gavel className="w-12 h-12 text-[var(--color-muted)] mx-auto mb-3 opacity-50" />
+                  <p className="text-sm text-[var(--color-muted)] font-medium">No active bids yet</p>
+                  <p className="text-xs text-[var(--color-muted)] mt-1">Browse live auctions to start bidding</p>
+                  <button 
+                    onClick={() => setActiveTab("live-auctions")}
+                    className="mt-4 bg-[var(--color-secondary)] hover:bg-[var(--color-primary)] text-white px-6 py-2.5 rounded-full text-sm font-bold transition-all hover:shadow-lg hover:shadow-[var(--color-primary)]/20"
+                  >
+                    Browse Auctions
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Manage Listings (Auctioneer only) */}
+            {activeTab === "manage-listings" && isAuctioneer && (
               <AuctioneerManageAssets />
             )}
 
-            {/* FinTech Escrow Verification Ledger */}
+            {/* Payments & Deposits */}
             {activeTab === "payments" && (
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                <h2 className="text-sm font-bold text-slate-900 mb-2">PayChangu Gateway Ledger</h2>
-                <p className="text-xs text-slate-500 mb-4">Track non-refundable bidding fees, process automated refunds, and verify collateral security deposits.</p>
-                <div className="p-8 border border-dashed border-slate-200 rounded-xl bg-slate-50 text-center text-xs text-slate-400 font-medium">
-                  Bank Reference Reconciliation Node Listening.
+              <div className="bg-[var(--color-card)] p-6 rounded-2xl border border-[var(--color-border)] shadow-sm space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold text-[var(--color-text)] mb-1">Payments & Deposits</h2>
+                    <p className="text-xs text-[var(--color-muted)]">
+                      Track bidding fees, security deposits, and PayChangu transactions
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-[var(--color-secondary)]/20 flex items-center justify-center">
+                    <Wallet className="w-5 h-5 text-[var(--color-primary)]" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="bg-[var(--color-input)] p-5 rounded-xl border border-[var(--color-border)] hover:border-[var(--color-primary)]/30 transition-all">
+                    <p className="text-[10px] text-[var(--color-muted)] uppercase font-bold tracking-wider mb-2">Bidding Fees</p>
+                    <p className="text-2xl font-bold text-[var(--color-text)]">MK 5,000</p>
+                    <p className="text-[10px] text-[var(--color-muted)] mt-1">Non-refundable per auction</p>
+                    <div className="mt-3 px-3 py-1.5 bg-[var(--color-secondary)]/10 rounded-lg inline-flex">
+                      <span className="text-[10px] text-[var(--color-primary)] font-bold">Required to bid</span>
+                    </div>
+                  </div>
+                  <div className="bg-[var(--color-input)] p-5 rounded-xl border border-[var(--color-border)] hover:border-[var(--color-primary)]/30 transition-all">
+                    <p className="text-[10px] text-[var(--color-muted)] uppercase font-bold tracking-wider mb-2">Security Deposit</p>
+                    <p className="text-2xl font-bold text-[var(--color-text)]">MK 50,000</p>
+                    <p className="text-[10px] text-[var(--color-muted)] mt-1">Refundable after auction</p>
+                    <div className="mt-3 px-3 py-1.5 bg-emerald-500/10 rounded-lg inline-flex">
+                      <span className="text-[10px] text-emerald-400 font-bold">Fully refundable</span>
+                    </div>
+                  </div>
+                  <div className="bg-[var(--color-input)] p-5 rounded-xl border border-[var(--color-border)] hover:border-[var(--color-primary)]/30 transition-all">
+                    <p className="text-[10px] text-[var(--color-muted)] uppercase font-bold tracking-wider mb-2">Total Paid</p>
+                    <p className="text-2xl font-bold text-[var(--color-text)]">MK 55,000</p>
+                    <p className="text-[10px] text-[var(--color-muted)] mt-1">Lifetime payments</p>
+                    <div className="mt-3 px-3 py-1.5 bg-[var(--color-primary)]/10 rounded-lg inline-flex">
+                      <span className="text-[10px] text-[var(--color-primary)] font-bold">PayChangu verified</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 border border-dashed border-[var(--color-border)] rounded-xl bg-[var(--color-input)]/30 text-center">
+                  <p className="text-sm text-[var(--color-muted)] font-medium">PayChangu Gateway Integration Active</p>
+                  <p className="text-xs text-[var(--color-muted)] mt-1">Secure payment processing for all transactions</p>
+                </div>
+              </div>
+            )}
+
+            {/* Reports (Auctioneer only) */}
+            {activeTab === "reports" && isAuctioneer && (
+              <div className="bg-[var(--color-card)] p-6 rounded-2xl border border-[var(--color-border)] shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-lg font-bold text-[var(--color-text)] mb-1">Auction Reports</h2>
+                    <p className="text-xs text-[var(--color-muted)]">Generate and download auction performance reports</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-[var(--color-secondary)]/20 flex items-center justify-center">
+                    <BarChart3 className="w-5 h-5 text-[var(--color-primary)]" />
+                  </div>
+                </div>
+                <div className="p-12 border border-dashed border-[var(--color-border)] rounded-xl bg-[var(--color-input)]/30 text-center">
+                  <BarChart3 className="w-12 h-12 text-[var(--color-muted)] mx-auto mb-3 opacity-50" />
+                  <p className="text-sm text-[var(--color-muted)] font-medium">Report generation module</p>
+                  <p className="text-xs text-[var(--color-muted)] mt-1">Coming soon</p>
+                </div>
+              </div>
+            )}
+
+            {/* Settings */}
+            {activeTab === "settings" && (
+              <div className="bg-[var(--color-card)] p-6 rounded-2xl border border-[var(--color-border)] shadow-sm max-w-2xl">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-lg font-bold text-[var(--color-text)] mb-1">Account Settings</h2>
+                    <p className="text-xs text-[var(--color-muted)]">Manage profile, notifications, and security</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-[var(--color-secondary)]/20 flex items-center justify-center">
+                    <Settings className="w-5 h-5 text-[var(--color-primary)]" />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-[var(--color-input)] rounded-xl border border-[var(--color-border)] hover:border-[var(--color-primary)]/30 transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[var(--color-secondary)]/20 flex items-center justify-center">
+                        <Bell className="w-4 h-4 text-[var(--color-primary)]" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[var(--color-text)]">Email Notifications</p>
+                        <p className="text-[10px] text-[var(--color-muted)]">Bid updates and auction alerts</p>
+                      </div>
+                    </div>
+                    <div className="w-11 h-6 bg-[var(--color-secondary)] rounded-full relative cursor-pointer">
+                      <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-[var(--color-input)] rounded-xl border border-[var(--color-border)] hover:border-[var(--color-primary)]/30 transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[var(--color-input)] flex items-center justify-center border border-[var(--color-border)]">
+                        <ShieldCheck className="w-4 h-4 text-[var(--color-muted)]" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[var(--color-text)]">Two-Factor Authentication</p>
+                        <p className="text-[10px] text-[var(--color-muted)]">Secure your account with 2FA</p>
+                      </div>
+                    </div>
+                    <div className="w-11 h-6 bg-[var(--color-input)] border border-[var(--color-border)] rounded-full relative cursor-pointer">
+                      <div className="absolute left-1 top-1 w-4 h-4 bg-[var(--color-muted)] rounded-full shadow-sm" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-[var(--color-input)] rounded-xl border border-[var(--color-border)] hover:border-[var(--color-primary)]/30 transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[var(--color-input)] flex items-center justify-center border border-[var(--color-border)]">
+                        <User className="w-4 h-4 text-[var(--color-muted)]" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[var(--color-text)]">Public Profile</p>
+                        <p className="text-[10px] text-[var(--color-muted)]">Make your profile visible to others</p>
+                      </div>
+                    </div>
+                    <div className="w-11 h-6 bg-[var(--color-secondary)] rounded-full relative cursor-pointer">
+                      <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -287,29 +475,29 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
       </div>
 
       {/* ========================================================
-          MOBILE APPLICATION FLOATING BOTTOM APP NAVIGATION BAR (Sticky on Base)
+          MOBILE BOTTOM NAVIGATION
          ======================================================== */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 bg-white/90 backdrop-blur-md border-t border-slate-200 h-16 flex items-center justify-around px-2 z-50 shadow-lg">
-        
+      <div className="md:hidden fixed bottom-0 inset-x-0 bg-[var(--color-card)]/95 backdrop-blur-md border-t border-[var(--color-border)] h-16 flex items-center justify-around px-2 z-50 shadow-lg shadow-black/20">
+
         <button
           onClick={() => setActiveTab("dashboard")}
           className={`flex flex-col items-center justify-center flex-1 h-full py-2 transition-all ${
-            activeTab === "dashboard" ? "text-indigo-600 scale-105 font-bold" : "text-slate-500 font-medium"
+            activeTab === "dashboard" ? "text-[var(--color-primary)] scale-105 font-bold" : "text-[var(--color-muted)] font-medium"
           }`}
         >
           <LayoutDashboard className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] tracking-tight">Overview</span>
+          <span className="text-[10px] tracking-tight">Home</span>
         </button>
 
         <button
-          onClick={() => setActiveTab("live-console")}
+          onClick={() => setActiveTab("live-auctions")}
           className={`flex flex-col items-center justify-center flex-1 h-full py-2 transition-all relative ${
-            activeTab === "live-console" ? "text-indigo-600 scale-105 font-bold" : "text-slate-500 font-medium"
+            activeTab === "live-auctions" ? "text-[var(--color-primary)] scale-105 font-bold" : "text-[var(--color-muted)] font-medium"
           }`}
         >
           <Tv className="w-5 h-5 mb-0.5" />
           <span className="text-[10px] tracking-tight">
-            {isAuctioneer ? "Console" : "Live Floor"}
+            {isAuctioneer ? "Live" : "Bids"}
           </span>
           {liveCount > 0 && (
             <span className="absolute top-2.5 right-6 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
@@ -318,24 +506,36 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
 
         {isAuctioneer && (
           <button
-            onClick={() => setActiveTab("manage-assets")}
+            onClick={() => setActiveTab("manage-listings")}
             className={`flex flex-col items-center justify-center flex-1 h-full py-2 transition-all ${
-              activeTab === "manage-assets" ? "text-indigo-600 scale-105 font-bold" : "text-slate-500 font-medium"
+              activeTab === "manage-listings" ? "text-[var(--color-primary)] scale-105 font-bold" : "text-[var(--color-muted)] font-medium"
             }`}
           >
             <FolderGit className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px] tracking-tight">Assets</span>
+            <span className="text-[10px] tracking-tight">Listings</span>
+          </button>
+        )}
+
+        {!isAuctioneer && (
+          <button
+            onClick={() => setActiveTab("my-bids")}
+            className={`flex flex-col items-center justify-center flex-1 h-full py-2 transition-all ${
+              activeTab === "my-bids" ? "text-[var(--color-primary)] scale-105 font-bold" : "text-[var(--color-muted)] font-medium"
+            }`}
+          >
+            <Gavel className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] tracking-tight">My Bids</span>
           </button>
         )}
 
         <button
           onClick={() => setActiveTab("payments")}
           className={`flex flex-col items-center justify-center flex-1 h-full py-2 transition-all ${
-            activeTab === "payments" ? "text-indigo-600 scale-105 font-bold" : "text-slate-500 font-medium"
+            activeTab === "payments" ? "text-[var(--color-primary)] scale-105 font-bold" : "text-[var(--color-muted)] font-medium"
           }`}
         >
           <Wallet className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] tracking-tight">Payments</span>
+          <span className="text-[10px] tracking-tight">Pay</span>
         </button>
 
       </div>

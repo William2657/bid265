@@ -13,15 +13,28 @@ function getPrismaClient() {
     return globalForPrisma.prisma;
   }
 
-  const connectionString = process.env.DATABASE_URL || "mysql://root:root@127.0.0.1:3306/e-auction";
+  const connectionString = process.env.DATABASE_URL || "mysql://root:precious@127.0.0.1:3306/e-auction";
   const dbUrl = new URL(connectionString);
 
+  // CRITICAL FIX: PrismaMariaDb accepts connection options including allowPublicKeyRetrieval
   const dbAdapter = new PrismaMariaDb({
     host: dbUrl.hostname,
     port: parseInt(dbUrl.port || "3306", 10),
     user: dbUrl.username,
     password: dbUrl.password,
     database: dbUrl.pathname.replace("/", ""),
+
+    // FIX: Allow public key retrieval for RSA authentication
+    allowPublicKeyRetrieval: true,
+
+    // Connection pool settings to prevent timeouts
+    connectionLimit: 10,
+    acquireTimeout: 10000,
+    connectTimeout: 5000,
+    idleTimeout: 300000,
+
+    // SSL disabled for local development
+    ssl: false,
   });
 
   const client = new PrismaClient({ adapter: dbAdapter });
@@ -50,12 +63,10 @@ export const authConfig = {
 
         const prisma = getPrismaClient();
 
-        // Query the user table securely
         const user = await prisma.user.findUnique({
           where: { email: credentials.email }
         });
 
-        // Verify user presence and password match safely
         if (!user || !user.password) return null;
         const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
 
@@ -65,7 +76,7 @@ export const authConfig = {
           id: String(user.id), 
           email: user.email,
           name: user.name,
-          role: user.role, // Passed directly into the initial JWT token execution
+          role: user.role,
         };
       }
     })
@@ -74,13 +85,11 @@ export const authConfig = {
     async jwt({ token, user, account }) {
       const prisma = getPrismaClient();
 
-      // 1. Initial Login Event Handlers
       if (user) {
         token.id = user.id; 
         token.role = user.role;
       }
 
-      // 2. Social Sign-In Safeguard (Google Oauth doesn't execute authorize method)
       if (account?.provider === "google" && token.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email }
@@ -90,7 +99,7 @@ export const authConfig = {
           token.role = dbUser.role;
         }
       }
-      
+
       return token;
     },
     async session({ session, token }) {
