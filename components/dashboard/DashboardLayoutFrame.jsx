@@ -24,23 +24,24 @@ import BidderDashboard from "@/components/dashboard/BidderDashboard";
 import AuctioneerLiveConsole from "@/components/dashboard/AuctioneerLiveConsole";
 import BidderLiveConsole from "@/components/dashboard/BidderLiveConsole";
 import AuctioneerManageAssets from "@/components/dashboard/AuctioneerManageAssets";
+import Mybids from "./Mybids"
 
 export default function DashboardLayoutFrame({ user, serializedAuctionItems, isAuctioneer }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState("live-auctions");
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const [liveCount, setLiveCount] = useState(0);
+  const [liveCountState, setLiveCountState] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
 
   const dropdownRef = useRef(null);
 
-  useEffect(() => {
-    if (serializedAuctionItems) {
-      const activeRooms = serializedAuctionItems.filter(
-        item => item.status === "LIVE" || item.status === "ACTIVE"
-      );
-      setLiveCount(activeRooms.length);
-    }
+  // Derive live count from serializedAuctionItems to avoid synchronous setState in effects.
+  // Keep a state fallback for compatibility, but prefer memoized derived value.
+  const liveCount = React.useMemo(() => {
+    if (!serializedAuctionItems) return 0;
+    return serializedAuctionItems.filter(
+      (item) => item.status === "LIVE" || item.status === "ACTIVE"
+    ).length;
   }, [serializedAuctionItems]);
 
   useEffect(() => {
@@ -317,21 +318,7 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
 
             {/* My Bids (Bidder only) */}
             {activeTab === "my-bids" && !isAuctioneer && (
-              <div className="bg-[var(--color-card)] p-6 rounded-2xl border border-[var(--color-border)] shadow-sm">
-                <h2 className="text-lg font-bold text-[var(--color-text)] mb-2">My Active Bids</h2>
-                <p className="text-xs text-[var(--color-muted)] mb-6">Track your current bids and auction participation history.</p>
-                <div className="p-12 border border-dashed border-[var(--color-border)] rounded-xl bg-[var(--color-input)]/30 text-center">
-                  <Gavel className="w-12 h-12 text-[var(--color-muted)] mx-auto mb-3 opacity-50" />
-                  <p className="text-sm text-[var(--color-muted)] font-medium">No active bids yet</p>
-                  <p className="text-xs text-[var(--color-muted)] mt-1">Browse live auctions to start bidding</p>
-                  <button 
-                    onClick={() => setActiveTab("live-auctions")}
-                    className="mt-4 bg-[var(--color-secondary)] hover:bg-[var(--color-primary)] text-white px-6 py-2.5 rounded-full text-sm font-bold transition-all hover:shadow-lg hover:shadow-[var(--color-primary)]/20"
-                  >
-                    Browse Auctions
-                  </button>
-                </div>
-              </div>
+              <Mybids/>
             )}
 
             {/* Manage Listings (Auctioneer only) */}
