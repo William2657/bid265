@@ -25,6 +25,7 @@ import AuctioneerLiveConsole from "@/components/dashboard/AuctioneerLiveConsole"
 import BidderLiveConsole from "@/components/dashboard/BidderLiveConsole";
 import AuctioneerManageAssets from "@/components/dashboard/AuctioneerManageAssets";
 import Mybids from "./Mybids"
+import Payment from "./Payment";
 
 export default function DashboardLayoutFrame({ user, serializedAuctionItems, isAuctioneer }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -328,71 +329,7 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
 
             {/* Payments & Deposits */}
             {activeTab === "payments" && (
-              <div className="bg-[var(--color-card)] p-6 rounded-2xl border border-[var(--color-border)] shadow-sm space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-bold text-[var(--color-text)] mb-1">Payments & Deposits</h2>
-                    <p className="text-xs text-[var(--color-muted)]">
-                      Track bidding fees, security deposits, and PayChangu transactions
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 rounded-xl bg-[var(--color-secondary)]/20 flex items-center justify-center">
-                    <Wallet className="w-5 h-5 text-[var(--color-primary)]" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="bg-[var(--color-input)] p-5 rounded-xl border border-[var(--color-border)] hover:border-[var(--color-primary)]/30 transition-all">
-                    <p className="text-[10px] text-[var(--color-muted)] uppercase font-bold tracking-wider mb-2">Bidding Fees</p>
-                    <p className="text-2xl font-bold text-[var(--color-text)]">MK 5,000</p>
-                    <p className="text-[10px] text-[var(--color-muted)] mt-1">Non-refundable per auction</p>
-                    <div className="mt-3 px-3 py-1.5 bg-[var(--color-secondary)]/10 rounded-lg inline-flex">
-                      <span className="text-[10px] text-[var(--color-primary)] font-bold">Required to bid</span>
-                    </div>
-                  </div>
-                  <div className="bg-[var(--color-input)] p-5 rounded-xl border border-[var(--color-border)] hover:border-[var(--color-primary)]/30 transition-all">
-                    <p className="text-[10px] text-[var(--color-muted)] uppercase font-bold tracking-wider mb-2">Security Deposit</p>
-                    <p className="text-2xl font-bold text-[var(--color-text)]">MK 50,000</p>
-                    <p className="text-[10px] text-[var(--color-muted)] mt-1">Refundable after auction</p>
-                    <div className="mt-3 px-3 py-1.5 bg-emerald-500/10 rounded-lg inline-flex">
-                      <span className="text-[10px] text-emerald-400 font-bold">Fully refundable</span>
-                    </div>
-                  </div>
-                  <div className="bg-[var(--color-input)] p-5 rounded-xl border border-[var(--color-border)] hover:border-[var(--color-primary)]/30 transition-all">
-                    <p className="text-[10px] text-[var(--color-muted)] uppercase font-bold tracking-wider mb-2">Total Paid</p>
-                    <p className="text-2xl font-bold text-[var(--color-text)]">MK 55,000</p>
-                    <p className="text-[10px] text-[var(--color-muted)] mt-1">Lifetime payments</p>
-                    <div className="mt-3 px-3 py-1.5 bg-[var(--color-primary)]/10 rounded-lg inline-flex">
-                      <span className="text-[10px] text-[var(--color-primary)] font-bold">PayChangu verified</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-6 border border-dashed border-[var(--color-border)] rounded-xl bg-[var(--color-input)]/30 text-center">
-                  <p className="text-sm text-[var(--color-muted)] font-medium">PayChangu Gateway Integration Active</p>
-                  <p className="text-xs text-[var(--color-muted)] mt-1">Secure payment processing for all transactions</p>
-                </div>
-              </div>
-            )}
-
-            {/* Reports (Auctioneer only) */}
-            {activeTab === "reports" && isAuctioneer && (
-              <div className="bg-[var(--color-card)] p-6 rounded-2xl border border-[var(--color-border)] shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-lg font-bold text-[var(--color-text)] mb-1">Auction Reports</h2>
-                    <p className="text-xs text-[var(--color-muted)]">Generate and download auction performance reports</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-xl bg-[var(--color-secondary)]/20 flex items-center justify-center">
-                    <BarChart3 className="w-5 h-5 text-[var(--color-primary)]" />
-                  </div>
-                </div>
-                <div className="p-12 border border-dashed border-[var(--color-border)] rounded-xl bg-[var(--color-input)]/30 text-center">
-                  <BarChart3 className="w-12 h-12 text-[var(--color-muted)] mx-auto mb-3 opacity-50" />
-                  <p className="text-sm text-[var(--color-muted)] font-medium">Report generation module</p>
-                  <p className="text-xs text-[var(--color-muted)] mt-1">Coming soon</p>
-                </div>
-              </div>
+              <Payment />
             )}
 
             {/* Settings */}

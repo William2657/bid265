@@ -244,27 +244,6 @@ export default function Mybids() {
         </div>
       </div>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        {[
-          { label: "Total Bids", value: stats.totalBids, icon: Gavel },
-          { label: "Winning", value: stats.winning, icon: Trophy, color: "text-emerald-500" },
-          { label: "Outbid", value: stats.outbid, icon: ArrowUpRight, color: "text-rose-500" },
-          { label: "Won", value: stats.won, icon: Eye, color: "text-violet-500" },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-[var(--color-input)]/50 border border-[var(--color-border)] rounded-xl p-3 hover:border-[var(--color-primary)]/20 transition-colors"
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <stat.icon className={`w-4 h-4 ${stat.color || "text-[var(--color-muted)]"}`} />
-              <span className="text-xs text-[var(--color-muted)]">{stat.label}</span>
-            </div>
-            <p className="text-xl font-bold text-[var(--color-text)]">{stat.value}</p>
-          </div>
-        ))}
-      </div>
-
       {/* Bids Table */}
       <div className="overflow-x-auto rounded-xl border border-[var(--color-border)]">
         <table className="w-full text-sm">
