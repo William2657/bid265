@@ -13,13 +13,13 @@ function getPrismaClient() {
     return globalForPrisma.prisma;
   }
 
-  const connectionString = process.env.DATABASE_URL || "mysql://root:precious@127.0.0.1:3306/e-auction";
+  const connectionString = process.env.DATABASE_URL;
   const dbUrl = new URL(connectionString);
 
   // CRITICAL FIX: PrismaMariaDb accepts connection options including allowPublicKeyRetrieval
   const dbAdapter = new PrismaMariaDb({
     host: dbUrl.hostname,
-    port: parseInt(dbUrl.port || "3306", 10),
+    port: parseInt(dbUrl.port),
     user: dbUrl.username,
     password: dbUrl.password,
     database: dbUrl.pathname.replace("/", ""),

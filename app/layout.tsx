@@ -1,4 +1,5 @@
 import { Inter } from "next/font/google";
+import type { ReactNode } from "react";
 import "./globals.css";
 import { AuthProvider } from "./providers";
 
@@ -9,7 +10,7 @@ export const metadata = {
   description: "Secure, verified, and transparent property bidding portal.",
 };
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className={inter.className}>
