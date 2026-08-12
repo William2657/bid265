@@ -112,4 +112,13 @@ export const authConfig = {
   },
 };
 
-export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
+// Do not call `NextAuth` at module load time. Route handlers should create
+// a fresh NextAuth instance in the route to avoid side effects during build.
+// Provide a lazy `auth` helper that's created at call time to avoid
+// executing NextAuth during module import (prevents build-time side effects).
+export async function auth(...args) {
+  const { auth: authFn } = NextAuth(authConfig);
+  return authFn(...args);
+}
+
+export default authConfig;
