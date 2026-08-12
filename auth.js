@@ -2,7 +2,7 @@ import Google from "next-auth/providers/google";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaClient } from "@prisma/client";
-import { PrismaMariaDb } from "@prisma/adapter-mariadb";
+import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 
 // Global declaration to prevent open database handle leaks during Next.js Hot Reloads
@@ -13,31 +13,11 @@ function getPrismaClient() {
     return globalForPrisma.prisma;
   }
 
-  const connectionString = process.env.DATABASE_URL;
-  const dbUrl = new URL(connectionString);
-
-  // CRITICAL FIX: PrismaMariaDb accepts connection options including allowPublicKeyRetrieval
-  const dbAdapter = new PrismaMariaDb({
-    host: dbUrl.hostname,
-    port: parseInt(dbUrl.port),
-    user: dbUrl.username,
-    password: dbUrl.password,
-    database: dbUrl.pathname.replace("/", ""),
-
-    // FIX: Allow public key retrieval for RSA authentication
-    allowPublicKeyRetrieval: true,
-
-    // Connection pool settings to prevent timeouts
-    connectionLimit: 10,
-    acquireTimeout: 10000,
-    connectTimeout: 5000,
-    idleTimeout: 300000,
-
-    // SSL disabled for local development
-    ssl: false,
+  // Prisma 7.x with PostgreSQL adapter
+  const adapter = new PrismaPg({
+    connectionString: process.env.DATABASE_URL,
   });
-
-  const client = new PrismaClient({ adapter: dbAdapter });
+  const client = new PrismaClient({ adapter });
 
   if (process.env.NODE_ENV !== "production") {
     globalForPrisma.prisma = client;
