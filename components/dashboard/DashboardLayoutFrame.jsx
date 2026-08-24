@@ -26,6 +26,7 @@ import BidderLiveConsole from "@/components/dashboard/BidderLiveConsole";
 import AuctioneerManageAssets from "@/components/dashboard/AuctioneerManageAssets";
 import Mybids from "./Mybids"
 import Payment from "./Payment";
+import AuctioneerPayment from "./AuctioneerPayment";
 
 export default function DashboardLayoutFrame({ user, serializedAuctionItems, isAuctioneer }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -329,7 +330,7 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
 
             {/* Payments & Deposits */}
             {activeTab === "payments" && (
-              <Payment />
+              isAuctioneer ? <AuctioneerPayment /> : <Payment />
             )}
 
             {/* Settings */}
