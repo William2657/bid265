@@ -80,6 +80,13 @@ const SearchInputIcon = () => (
   </svg>
 );
 
+const TagIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <path d="M7 1.5h5.5A1.5 1.5 0 0 1 14 3v5.5L8.5 14l-7-7L7 1.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
+    <circle cx="10.5" cy="5.5" r="1" fill="currentColor"/>
+  </svg>
+);
+
 const UserIcon = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
     <circle cx="9" cy="6" r="4" stroke="currentColor" strokeWidth="1.5"/>
@@ -134,7 +141,7 @@ function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const links = ["Auctions", "Properties", "How It Works", "About", "Contact"];
+  const links = ["Auctions", "Daily Sales", "Properties", "How It Works", "About", "Contact"];
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
@@ -454,6 +461,81 @@ function PropertyCard({
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// DAILY SALES
+// ═══════════════════════════════════════════════════════════════════
+
+function DailySalesSection() {
+  const { ref, inView } = useInView();
+
+  const saleItems = [
+    { image: "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?w=900&h=700&fit=crop", title: "Toyota Hilux 2022", category: "Vehicle", price: "MK 14.8M", seller: "Auctioneer Upload", note: "No account needed", badge: "Daily Sale" },
+    { image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=900&h=700&fit=crop", title: "3-Bedroom Family Home", category: "Property", price: "MK 26.5M", seller: "Verified Seller", note: "Fast direct purchase", badge: "Hot Deal" },
+    { image: "https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=900&h=700&fit=crop", title: "Modern Office Setup", category: "Business", price: "MK 9.2M", seller: "Auctioneer Upload", note: "Ready for immediate transfer", badge: "Instant Buy" },
+  ];
+
+  return (
+    <section id="daily-sales" ref={ref} className="py-16 sm:py-24 bg-[#0B1E26]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 mb-10 sm:mb-12">
+          <div>
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#A5EC60]/20 bg-[#A5EC60]/10 text-[#A5EC60] text-[10px] sm:text-xs font-bold uppercase tracking-[0.18em] mb-4">
+              <TagIcon /> Daily Sales
+            </span>
+            <h2 className={`text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+              Buy simple, fast, and <span className="text-[#A5EC60]">without an account</span>
+            </h2>
+            <p className={`text-[#487070] text-sm sm:text-base max-w-2xl transition-all duration-700 delay-100 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+              Auctioneers upload verified products for quick daily sales. Anyone can browse, compare, and purchase instantly without creating an account.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 bg-[#18333D]/60 border border-[#487070]/20 rounded-full p-1.5 w-fit">
+            <button className="px-4 py-2 rounded-full bg-[#A5EC60] text-[#0B1E26] text-xs sm:text-sm font-bold">Daily Sales</button>
+            <button className="px-4 py-2 rounded-full text-[#487070] text-xs sm:text-sm font-medium hover:text-white transition-colors">Auction Listings</button>
+          </div>
+        </div>
+
+        <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8">
+          {saleItems.map((item, i) => (
+            <div key={item.title} className={`group rounded-2xl sm:rounded-3xl overflow-hidden bg-[#18333D]/40 border border-[#487070]/10 hover:border-[#A5EC60]/20 transition-all duration-700 hover:shadow-2xl hover:shadow-[#A5EC60]/5 hover:-translate-y-3 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-16"}`} style={{ transitionDelay: `${200 + i * 150}ms` }}>
+              <div className="relative overflow-hidden">
+                <img src={item.image} alt={item.title} className="w-full h-52 sm:h-60 object-cover transition-transform duration-700 group-hover:scale-110" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0B1E26]/80 to-transparent opacity-70" />
+                <div className="absolute top-3 left-3">
+                  <span className="bg-[#A5EC60] text-[#0B1E26] text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-full">{item.badge}</span>
+                </div>
+                <div className="absolute top-3 right-3">
+                  <span className="bg-black/40 text-white border border-white/20 text-[10px] sm:text-xs font-medium px-2 py-1 rounded-full backdrop-blur-sm">{item.note}</span>
+                </div>
+              </div>
+
+              <div className="p-4 sm:p-5">
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <span className="text-[10px] sm:text-xs uppercase tracking-[0.14em] text-[#A5EC60] font-semibold">{item.category}</span>
+                  <span className="text-[10px] sm:text-xs text-[#487070]">Uploaded by {item.seller}</span>
+                </div>
+
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-3 group-hover:text-[#A5EC60] transition-colors duration-300">{item.title}</h3>
+
+                <div className="flex items-end justify-between gap-3 pt-2 border-t border-[#487070]/10">
+                  <div>
+                    <p className="text-[10px] sm:text-xs text-[#487070] mb-1">Price</p>
+                    <p className="text-xl sm:text-2xl font-extrabold text-[#A5EC60]">{item.price}</p>
+                  </div>
+                  <button className="bg-[#419310] hover:bg-[#A5EC60] text-white hover:text-[#0B1E26] px-4 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0">
+                    Buy Now
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // FEATURED PROPERTIES
 // ═══════════════════════════════════════════════════════════════════
 
@@ -648,6 +730,7 @@ export default function LandingPage() {
         <Navbar />
         <Hero />
         <SearchBar />
+        <DailySalesSection />
         <Features />
         <FeaturedProperties />
         <Stats />
