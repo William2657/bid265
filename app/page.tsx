@@ -549,12 +549,12 @@ function FeaturedProperties() {
   ];
 
   return (
-    <section ref={ref} className="py-16 sm:py-24 bg-[#0B1E26]">
+    <section id="properties" ref={ref} className="py-16 sm:py-24 bg-[#0B1E26]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 sm:mb-12 gap-4">
           <div>
             <h2 className={`text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-              Featured <span className="text-[#A5EC60]">Auctions</span>
+              Featured <span className="text-[#A5EC60]">Properties</span>
             </h2>
             <p className={`text-[#487070] text-sm sm:text-base transition-all duration-700 delay-100 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
               Hot properties available for bidding right now
@@ -729,10 +729,11 @@ export default function LandingPage() {
       <main className="min-h-screen bg-[#0B1E26] font-sans antialiased">
         <Navbar />
         <Hero />
-        <SearchBar />
+        {/* Document order: hero → daily sales → properties */}
         <DailySalesSection />
-        <Features />
         <FeaturedProperties />
+        <SearchBar />
+        <Features />
         <Stats />
         <CTA />
         <Footer />

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { 
   LogOut, 
   Gavel,
@@ -16,7 +17,9 @@ import {
   BarChart3,
   Settings,
   Bell,
-  Search
+  Search,
+  ShoppingBag,
+  Home
 } from "lucide-react";
 
 // Component Registry Imports
@@ -24,13 +27,16 @@ import BidderDashboard from "@/components/dashboard/BidderDashboard";
 import AuctioneerLiveConsole from "@/components/dashboard/AuctioneerLiveConsole";
 import BidderLiveConsole from "@/components/dashboard/BidderLiveConsole";
 import AuctioneerManageAssets from "@/components/dashboard/AuctioneerManageAssets";
+import AuctioneerAddListing from "@/components/dashboard/AuctioneerAddListing";
+import BidderMarketplace from "@/components/dashboard/BidderMarketplace";
 import Mybids from "./Mybids"
 import Payment from "./Payment";
 import AuctioneerPayment from "./AuctioneerPayment";
 
-export default function DashboardLayoutFrame({ user, serializedAuctionItems, isAuctioneer }) {
+export default function DashboardLayoutFrame({ user, serializedAuctionItems, isAuctioneer, forceTab = null, addListingInitialMode = "property" }) {
+  const searchParams = useSearchParams();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activeTab, setActiveTab] = useState("live-auctions");
+  const [activeTab, setActiveTab] = useState(forceTab || searchParams.get("tab") || "live-auctions");
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [liveCountState, setLiveCountState] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,9 +67,12 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
   const getTabLabel = (tab) => {
     const labels = {
       "dashboard": "Dashboard",
-      "live-auctions": isAuctioneer ? "Live Auction Control" : "Live Auction Floor",
+      "live-auctions": isAuctioneer ? "Manage Auctions" : "Live Auction Floor",
+      "daily-sales": "Daily Sales",
+      "properties": "Properties",
       "my-bids": "My Bids",
       "manage-listings": "Manage Listings",
+      "add-listing": "Add Listing",
       "payments": "Payments & Deposits",
       "reports": "Reports",
       "settings": "Settings"
@@ -73,7 +82,9 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
 
   const navItems = [
     { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", show: true },
-    { id: "live-auctions", icon: Tv, label: isAuctioneer ? "Live Auction Control" : "Live Auction Floor", show: true, badge: liveCount },
+    { id: "live-auctions", icon: Tv, label: isAuctioneer ? "Manage Auctions" : "Live Auction Floor", show: true, badge: liveCount },
+    { id: "daily-sales", icon: ShoppingBag, label: "Daily Sales", show: !isAuctioneer },
+    { id: "properties", icon: Home, label: "Properties", show: !isAuctioneer },
     { id: "my-bids", icon: Gavel, label: "My Bids", show: !isAuctioneer },
     { id: "manage-listings", icon: FolderGit, label: "Manage Listings", show: isAuctioneer },
     { id: "payments", icon: Wallet, label: "Payments & Deposits", show: true },
@@ -306,7 +317,7 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
               </div>
             )}
 
-            {/* Live Auctions */}
+            {/* Manage Auctions (Auctioneer) / Live Auction Floor (Bidder) */}
             {activeTab === "live-auctions" && (
               isAuctioneer ? (
                 <AuctioneerLiveConsole 
@@ -318,6 +329,16 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
               )
             )}
 
+            {/* Daily Sales (Bidder) — regular sold commodities with search */}
+            {activeTab === "daily-sales" && !isAuctioneer && (
+              <BidderMarketplace initialTab="daily-sales" />
+            )}
+
+            {/* Properties (Bidder) — land & buildings searchable by location */}
+            {activeTab === "properties" && !isAuctioneer && (
+              <BidderMarketplace initialTab="properties" />
+            )}
+
             {/* My Bids (Bidder only) */}
             {activeTab === "my-bids" && !isAuctioneer && (
               <Mybids/>
@@ -326,6 +347,11 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
             {/* Manage Listings (Auctioneer only) */}
             {activeTab === "manage-listings" && isAuctioneer && (
               <AuctioneerManageAssets />
+            )}
+
+            {/* Add Listing form (redirect target of the Add Listing button) */}
+            {activeTab === "add-listing" && isAuctioneer && (
+              <AuctioneerAddListing initialMode={addListingInitialMode} />
             )}
 
             {/* Payments & Deposits */}
@@ -422,12 +448,36 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
         >
           <Tv className="w-5 h-5 mb-0.5" />
           <span className="text-[10px] tracking-tight">
-            {isAuctioneer ? "Live" : "Bids"}
+            {isAuctioneer ? "Manage" : "Bids"}
           </span>
           {liveCount > 0 && (
             <span className="absolute top-2.5 right-6 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
           )}
         </button>
+
+        {!isAuctioneer && (
+          <button
+            onClick={() => setActiveTab("daily-sales")}
+            className={`flex flex-col items-center justify-center flex-1 h-full py-2 transition-all ${
+              activeTab === "daily-sales" ? "text-[var(--color-primary)] scale-105 font-bold" : "text-[var(--color-muted)] font-medium"
+            }`}
+          >
+            <ShoppingBag className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] tracking-tight">Daily</span>
+          </button>
+        )}
+
+        {!isAuctioneer && (
+          <button
+            onClick={() => setActiveTab("properties")}
+            className={`flex flex-col items-center justify-center flex-1 h-full py-2 transition-all ${
+              activeTab === "properties" ? "text-[var(--color-primary)] scale-105 font-bold" : "text-[var(--color-muted)] font-medium"
+            }`}
+          >
+            <Home className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] tracking-tight">Props</span>
+          </button>
+        )}
 
         {isAuctioneer && (
           <button
