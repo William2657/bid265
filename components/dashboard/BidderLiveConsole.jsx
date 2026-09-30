@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getActiveLiveAuctions, getLiveKitToken } from "@/app/actions/liveAuction";
+import { hasClearedAuctionGate } from "@/app/actions/auctionAccess";
+import AuctionAccessGate from "@/components/dashboard/AuctionAccessGate";
 import { 
   Tv, 
   Search, 
@@ -25,6 +27,7 @@ export default function BidderLiveConsole({ auctionItems = [] }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("ALL");
   const [loading, setLoading] = useState(true);
+  const [gateAuction, setGateAuction] = useState(null); // auction pending fee clearance
 
   // Fetch active auctions on mount
   useEffect(() => {
@@ -55,13 +58,25 @@ export default function BidderLiveConsole({ auctionItems = [] }) {
     return () => clearInterval(interval);
   }, [auctionItems]);
 
-  // Handle joining a live auction room
+  // Handle joining a live auction room — first clear the bidding fee + security deposit gate.
   const handleJoinAuction = async (auction) => {
     const targetRoomId = auction.roomId || auction.id;
     const itemDbId = auction.auctionItemId || auction.id;
 
     try {
       setIsJoiningId(targetRoomId);
+
+      // Document requirement: bidding fee → security deposit → auction room.
+      const gate = await hasClearedAuctionGate(itemDbId);
+      if (!gate.success) {
+        throw new Error(gate.error || "Could not verify auction access payments.");
+      }
+
+      if (!gate.cleared) {
+        setIsJoiningId(null);
+        setGateAuction({ roomId: String(targetRoomId), auctionItemId: itemDbId });
+        return;
+      }
 
       const tokenPromise = getLiveKitToken(targetRoomId, itemDbId);
       const timeoutPromise = new Promise((_, reject) =>
@@ -73,9 +88,29 @@ export default function BidderLiveConsole({ auctionItems = [] }) {
       router.push(`/auctions/live/${targetRoomId}?token=${tokenPayload.token}&id=${itemDbId}`);
     } catch (err) {
       console.error("Join error:", err);
-      alert("Failed to connect to auction room. Please try again.");
+      alert(err.message || "Failed to connect to auction room. Please try again.");
     } finally {
       setIsJoiningId(null);
+    }
+  };
+
+  // Called when both the bidding fee and the security deposit have been confirmed.
+  const handleAccessGranted = async (gateData) => {
+    if (!gateAuction) return;
+    const targetRoomId = gateAuction.roomId;
+    const itemDbId = gateAuction.auctionItemId;
+
+    try {
+      const tokenPromise = getLiveKitToken(targetRoomId, itemDbId);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Connection timeout")), 8000)
+      );
+
+      const tokenPayload = await Promise.race([tokenPromise, timeoutPromise]);
+      router.push(`/auctions/live/${targetRoomId}?token=${tokenPayload.token}&id=${itemDbId}`);
+    } catch (err) {
+      console.error("Post-payment join error:", err);
+      alert("Payments confirmed, but the room connection failed. Please tap Join Live again.");
     }
   };
 
@@ -126,6 +161,16 @@ export default function BidderLiveConsole({ auctionItems = [] }) {
 
   return (
     <div className="space-y-6 pb-16 md:pb-6">
+
+      {/* Two-step access payment gate (bidding fee → security deposit) */}
+      {gateAuction && (
+        <AuctionAccessGate
+          open={Boolean(gateAuction)}
+          onClose={() => setGateAuction(null)}
+          auctionItemId={gateAuction.auctionItemId}
+          onAccessGranted={handleAccessGranted}
+        />
+      )}
 
       {/* Hero Banner */}
       <div className="bg-gradient-to-r from-[var(--color-secondary)] to-[var(--color-primary)] text-[var(--color-bg)] rounded-2xl p-5 sm:p-6 shadow-lg shadow-[var(--color-primary)]/10 relative overflow-hidden">

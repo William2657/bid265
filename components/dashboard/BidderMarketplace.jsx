@@ -1,0 +1,306 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Package,
+  Home,
+  Search,
+  MapPin,
+  X,
+  Tag,
+  User,
+  Gavel,
+  Clock,
+  ShoppingBag,
+} from "lucide-react";
+import { formatDate } from "@/lib/payments";
+
+/**
+ * 🛍 BIDDER MARKETPLACE TABS
+ *
+ * Document requirements:
+ *  - Daily Sales tab → regular sold commodities, searchable across all auctioneers.
+ *  - Properties tab  → land & buildings, searchable by location.
+ */
+export default function BidderMarketplace({ initialTab = "daily-sales" }) {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState(initialTab === "properties" ? "properties" : "daily-sales");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [locationQuery, setLocationQuery] = useState("");
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchListings() {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({ tab: activeTab });
+        if (activeTab === "daily-sales" && searchQuery.trim()) {
+          params.set("q", searchQuery.trim());
+        }
+        if (activeTab === "properties" && searchQuery.trim()) {
+          params.set("q", searchQuery.trim());
+        }
+        if (activeTab === "properties" && locationQuery.trim()) {
+          params.set("location", locationQuery.trim());
+        }
+
+        const res = await fetch(`/api/marketplace?${params.toString()}`);
+        const json = await res.json();
+
+        if (!res.ok) throw new Error(json.error || "Failed to load listings");
+        if (!cancelled) setItems(json.items || []);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message);
+          setItems([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    const debounce = setTimeout(fetchListings, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(debounce);
+    };
+  }, [activeTab, searchQuery, locationQuery]);
+
+  const formatMoney = (value) =>
+    value === null || value === undefined || isNaN(Number(value))
+      ? "—"
+      : `MK ${Number(value).toLocaleString()}`;
+
+  const formatListingDate = (iso) => (iso ? `Listed ${formatDate(iso)}` : "");
+
+  return (
+    <div className="space-y-6 pb-16 md:pb-6">
+      {/* Hero banner */}
+      <div className="bg-gradient-to-r from-[var(--color-secondary)] to-[var(--color-primary)] text-[var(--color-bg)] rounded-2xl p-5 sm:p-6 shadow-lg shadow-[var(--color-primary)]/10 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <h2 className="text-sm sm:text-base font-black tracking-tight flex items-center gap-2">
+              {activeTab === "daily-sales" ? (
+                <><ShoppingBag className="w-5 h-5" /> Daily Sales</>
+              ) : (
+                <><Home className="w-5 h-5" /> Properties</>
+              )}
+            </h2>
+            <p className="text-[11px] sm:text-xs text-[var(--color-bg)]/70 max-w-xl leading-relaxed">
+              {activeTab === "daily-sales"
+                ? "Browse regular sold commodities — goods uploaded for quick daily sales by every auctioneer on the system."
+                : "Explore land and buildings from all registered auctioneers. Search by location to find property near you."}
+            </p>
+          </div>
+          <div className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl px-5 py-3 shrink-0 self-start sm:self-center">
+            <span className="block text-xl sm:text-2xl font-black leading-none text-center">{items.length}</span>
+            <span className="text-[9px] uppercase tracking-wider font-bold mt-1 block opacity-70 text-center">Listings</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Tab switcher */}
+      <div className="flex items-center gap-2 bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-1.5 w-fit">
+        <button
+          onClick={() => setActiveTab("daily-sales")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeTab === "daily-sales"
+              ? "bg-[var(--color-secondary)] text-white shadow-sm"
+              : "text-[var(--color-muted)] hover:text-[var(--color-text)]"
+          }`}
+        >
+          <ShoppingBag className="w-3.5 h-3.5" /> Daily Sales
+        </button>
+        <button
+          onClick={() => setActiveTab("properties")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeTab === "properties"
+              ? "bg-[var(--color-secondary)] text-white shadow-sm"
+              : "text-[var(--color-muted)] hover:text-[var(--color-text)]"
+          }`}
+        >
+          <Home className="w-3.5 h-3.5" /> Properties
+        </button>
+      </div>
+
+      {/* Search bars */}
+      {activeTab === "daily-sales" ? (
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-muted)]" />
+          <input
+            type="text"
+            placeholder="Search for goods across all auctioneers — e.g. vehicle, electronics..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl pl-10 pr-10 py-2.5 text-sm text-[var(--color-text)] placeholder-[var(--color-muted)] focus:outline-none focus:border-[var(--color-primary)]/40 focus:ring-1 focus:ring-[var(--color-primary)]/20 transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)] hover:text-[var(--color-text)]"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-muted)]" />
+            <input
+              type="text"
+              placeholder="Search properties by name or type..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl pl-10 pr-10 py-2.5 text-sm text-[var(--color-text)] placeholder-[var(--color-muted)] focus:outline-none focus:border-[var(--color-primary)]/40 focus:ring-1 focus:ring-[var(--color-primary)]/20 transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)] hover:text-[var(--color-text)]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          <div className="relative">
+            <MapPin className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-primary)]" />
+            <input
+              type="text"
+              placeholder="Search by location — e.g. Lilongwe, Blantyre..."
+              value={locationQuery}
+              onChange={(e) => setLocationQuery(e.target.value)}
+              className="w-full bg-[var(--color-card)] border border-[var(--color-primary)]/25 rounded-xl pl-10 pr-10 py-2.5 text-sm text-[var(--color-text)] placeholder-[var(--color-muted)] focus:outline-none focus:border-[var(--color-primary)]/50 focus:ring-1 focus:ring-[var(--color-primary)]/25 transition-all"
+            />
+            {locationQuery && (
+              <button
+                onClick={() => setLocationQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)] hover:text-[var(--color-text)]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Results */}
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-4 animate-pulse">
+              <div className="h-40 bg-[var(--color-input)] rounded-xl mb-4" />
+              <div className="h-4 bg-[var(--color-input)] rounded w-3/4 mb-2" />
+              <div className="h-3 bg-[var(--color-input)] rounded w-1/2" />
+            </div>
+          ))}
+        </div>
+      ) : error ? (
+        <div className="bg-[var(--color-card)] border border-red-500/20 rounded-2xl p-8 text-center">
+          <p className="text-sm text-red-400 font-medium">{error}</p>
+        </div>
+      ) : items.length === 0 ? (
+        <div className="bg-[var(--color-card)] border border-dashed border-[var(--color-border)] rounded-2xl p-12 text-center">
+          {activeTab === "daily-sales" ? (
+            <Package className="w-12 h-12 text-[var(--color-muted)] mx-auto mb-4 opacity-50" />
+          ) : (
+            <Home className="w-12 h-12 text-[var(--color-muted)] mx-auto mb-4 opacity-50" />
+          )}
+          <p className="text-sm text-[var(--color-muted)] font-medium">
+            {searchQuery || locationQuery
+              ? "No listings match your search. Try different keywords."
+              : "No listings published yet. Check back soon!"}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {items.map((item) => (
+            <div
+              key={`${item.kind}-${item.id}`}
+              className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-sm flex flex-col group hover:border-[var(--color-primary)]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-[var(--color-primary)]/5"
+            >
+              <div className="relative h-44 w-full overflow-hidden">
+                {item.imageUrl ? (
+                  <img
+                    src={item.imageUrl}
+                    alt={item.title}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[var(--color-card)] to-[var(--color-input)]">
+                    {activeTab === "daily-sales" ? (
+                      <Package className="w-10 h-10 text-[var(--color-muted)] opacity-30" />
+                    ) : (
+                      <Home className="w-10 h-10 text-[var(--color-muted)] opacity-30" />
+                    )}
+                  </div>
+                )}
+                <div className="absolute top-3 left-3">
+                  <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-[var(--color-secondary)] text-white">
+                    {item.category || (activeTab === "daily-sales" ? "GOOD" : "PROPERTY")}
+                  </span>
+                </div>
+                <div className="absolute bottom-3 left-3">
+                  <span className="bg-[var(--color-bg)]/80 backdrop-blur-sm text-white px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 border border-[var(--color-border)]">
+                    <Clock className="w-3 h-3 text-[var(--color-primary)]" />
+                    {formatListingDate(item.createdAt)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-4 flex-1 flex flex-col gap-2">
+                <h3 className="text-sm font-bold text-[var(--color-text)] line-clamp-1 group-hover:text-[var(--color-primary)] transition-colors">
+                  {item.title}
+                </h3>
+                <p className="text-[11px] text-[var(--color-muted)] line-clamp-2 leading-relaxed">
+                  {item.description}
+                </p>
+
+                <div className="flex items-center gap-1 text-[10px] text-[var(--color-muted)]">
+                  <MapPin className="w-3 h-3 text-[var(--color-primary)]" />
+                  {item.location}
+                </div>
+
+                <div className="flex items-center gap-1 text-[10px] text-[var(--color-muted)] mt-auto">
+                  <User className="w-3 h-3" />
+                  {item.auctioneerName}
+                </div>
+
+                <div className="flex items-end justify-between pt-2 border-t border-[var(--color-border)] mt-1">
+                  <div>
+                    <p className="text-[10px] text-[var(--color-muted)] mb-0.5">
+                      {activeTab === "daily-sales" ? "Buy Now Price" : item.currentBid ? "Current Bid" : "Starting Bid"}
+                    </p>
+                    <p className="text-base font-extrabold text-[var(--color-primary)]">
+                      {formatMoney(activeTab === "daily-sales" ? item.price : (item.currentBid || item.startingBid))}
+                    </p>
+                  </div>
+                  {activeTab === "properties" && item.auctionItemId ? (
+                    <button
+                      onClick={() => router.push("/dashboard?tab=live-auctions")}
+                      className="flex items-center gap-1 px-3 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white rounded-xl text-[11px] font-bold transition-all active:scale-95"
+                    >
+                      <Gavel className="w-3.5 h-3.5" /> Bid
+                    </button>
+                  ) : activeTab === "daily-sales" ? (
+                    <span className="flex items-center gap-1 px-3 py-2 bg-[var(--color-secondary)]/15 text-[var(--color-primary)] rounded-xl text-[11px] font-bold border border-[var(--color-primary)]/20">
+                      <Tag className="w-3.5 h-3.5" /> Fixed Price
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -22,6 +22,7 @@ export async function createAssetAndAuction(formData) {
     const startingBid = formData.get("startingBid");
     const reservePrice = formData.get("reservePrice");
     const depositAmount = formData.get("depositAmount");
+    const biddingFee = formData.get("biddingFee");
     
     const rawAttributes = formData.get("dynamicAttributes");
     const parsedAttributes = JSON.parse(rawAttributes || "[]");
@@ -62,6 +63,7 @@ export async function createAssetAndAuction(formData) {
           description,
           location,
           category,
+          salesType: "PROPERTY",
           attributes: formattedAttributes,
           documentUrl: documentUrl || null,
           createdById: Number(session.user.id),
@@ -74,6 +76,7 @@ export async function createAssetAndAuction(formData) {
           startingBid: parseFloat(startingBid),
           reservePrice: parseFloat(reservePrice),
           depositAmount: parseFloat(depositAmount),
+          biddingFee: biddingFee ? parseFloat(biddingFee) : 0,
           endTime: new Date(Date.now() + 4 * 60 * 60 * 1000), 
           status: "UPCOMING",
           

@@ -25,6 +25,7 @@ model User {
   payments      Payment[]
   assets        Asset[]              
   registrations AuctionRegistration[]
+  accessPayments AuctionAccessPayment[]
 
   @@map("users") 
 }
@@ -46,7 +47,12 @@ model Asset {
   
   // Stored as a plain String so auctioneers can type "VEHICLE", "REAL_ESTATE", or any custom category name
   category      String        @db.VarChar(100) @default("OTHER")
-  
+
+  // LISTING TYPE: DAILY_SALE = instant-purchase daily sales good, PROPERTY = land/building auction property
+  salesType     String        @default("PROPERTY") @db.VarChar(50)
+  salePrice     Decimal?      @db.Decimal(14, 2) // Buy-now price for DAILY_SALE listings
+  isSold        Boolean       @default(false)
+
   // DYNAMIC COMPLIANCE BLOCK - INFINITE KEY/VALUE GENERATION
   // Stores any custom attributes appended by the user via the dashboard plus button
   // e.g., {"Mileage": "4500k", "Engine": "V8"} or {"Bedrooms": 3} or {"RAM": "16GB"}
@@ -62,6 +68,7 @@ model Asset {
 
   // Relations
   auctionItems  AuctionItem[]
+  saleItems     DailySale[]
 
   @@map("assets")
 }
@@ -76,8 +83,11 @@ model AuctionItem {
   
   reservePrice  Decimal       @db.Decimal(14, 2) 
   startingBid   Decimal       @db.Decimal(14, 2)
-  depositAmount Decimal       @db.Decimal(12, 2) 
-  
+  depositAmount Decimal       @db.Decimal(12, 2)
+
+  // Mandatory pre-join payments for live auctions
+  biddingFee    Decimal       @default(0) @db.Decimal(12, 2)
+
   startTime     DateTime      @default(now())
   endTime       DateTime      
   status        String        @default("UPCOMING") // UPCOMING, ACTIVE, CLOSED, SUSPENDED
@@ -92,6 +102,7 @@ model AuctionItem {
   bids          Bid[]
   images        AssetImage[]
   registrations AuctionRegistration[]
+  accessPayments AuctionAccessPayment[]
 
   @@map("auction_items")
 }
@@ -121,6 +132,46 @@ model AuctionRegistration {
 
   @@unique([userId, auctionItemId]) 
   @@map("auction_registrations")
+}
+
+// ==========================================
+// 4B. DAILY SALES DIRECT-PURCHASE MODULE
+// ==========================================
+model DailySale {
+  id            Int         @id @default(autoincrement())
+  assetId       Int
+  asset         Asset       @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  price         Decimal     @db.Decimal(14, 2)
+  stockCount    Int         @default(1)
+  isAvailable   Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("daily_sales")
+}
+
+// ==========================================
+// 4C. LIVE AUCTION ACCESS LEDGER (BIDDING FEE + SECURITY DEPOSIT GATE)
+// ==========================================
+model AuctionAccessPayment {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id])
+  auctionItemId   Int
+  auctionItem     AuctionItem @relation(fields: [auctionItemId], references: [id], onDelete: Cascade)
+
+  // BIDDING_FEE paid first, then SECURITY_DEPOSIT
+  feeType         String   @db.VarChar(50) // BIDDING_FEE | SECURITY_DEPOSIT
+  amount          Decimal  @db.Decimal(14, 2)
+  paymentRef      String?  @db.VarChar(191) // PayChangu tx_ref
+  status          String   @default("PENDING") @db.VarChar(50) // PENDING | PAID | FAILED
+  paidAt          DateTime?
+  createdAt       DateTime @default(now())
+
+  @@unique([userId, auctionItemId, feeType])
+  @@index([userId, status])
+  @@map("auction_access_payments")
 }
 
 // ==========================================
