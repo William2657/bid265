@@ -141,8 +141,8 @@ const SubscriptionModal = ({ isOpen, onClose, tier, onSuccess, user }) => {
         phone: formData.phone,
         method: "card",
         purpose: `AUCTIONEER_SUBSCRIPTION_${tier.key.toUpperCase()}`,
-        callback_url: CALLBACK_URL,
-        return_url: RETURN_URL,
+      callback_url: CALLBACK_URL || `${window.location.origin}/api/paychangu/callback`,
+      return_url: RETURN_URL || `${window.location.origin}/dashboard?tab=payments`,
       });
 
       console.log("[Auctioneer Payment] Response:", data);

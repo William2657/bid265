@@ -100,6 +100,7 @@ export default function AuctionAccessGate({ open, onClose, auctionItemId, onAcce
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
   const [activeFee, setActiveFee] = useState(null); // BIDDING_FEE | SECURITY_DEPOSIT
+  const [checkoutUrl, setCheckoutUrl] = useState(null);
 
   const loadStatus = useCallback(async () => {
     try {
@@ -134,6 +135,7 @@ export default function AuctionAccessGate({ open, onClose, auctionItemId, onAcce
     setActiveFee(feeType);
     setStepState("paying");
     setError(null);
+    setCheckoutUrl(null);
 
     try {
       // 1. Register the pending access payment server-side
@@ -144,26 +146,34 @@ export default function AuctionAccessGate({ open, onClose, auctionItemId, onAcce
 
       if (!startRes.success) throw new Error(startRes.error);
 
-      // 2. Initiate the PayChangu checkout
+      // 2. Initiate the PayChangu checkout (only when the gateway is configured).
+      //    Without a gateway key (local/sandbox) the confirmation step auto-clears.
       const ref = generateTxRef();
-      const { firstName, lastName } = parseName(user?.name || "");
+      if (status?.gatewayConfigured) {
+        const { firstName, lastName } = parseName(user?.name || "");
 
-      const initRes = await initiatePayment({
-        amount: startRes.data.amount,
-        currency: "MWK",
-        tx_ref: ref,
-        email: user?.email || "",
-        first_name: firstName,
-        last_name: lastName,
-        phone: user?.phoneNumber || "",
-        method: "card",
-        purpose: feeType,
-        callback_url: CALLBACK_URL,
-        return_url: RETURN_URL,
-      });
+        const initRes = await initiatePayment({
+          amount: startRes.data.amount,
+          currency: "MWK",
+          tx_ref: ref,
+          email: user?.email || "",
+          first_name: firstName,
+          last_name: lastName,
+          phone: user?.phoneNumber || "",
+          method: "card",
+          purpose: feeType,
+          callback_url: CALLBACK_URL || `${window.location.origin}/api/paychangu/callback`,
+          return_url: RETURN_URL || `${window.location.origin}/dashboard?tab=payments`,
+        });
 
-      if (!initRes.checkoutUrl) {
-        throw new Error("Gateway did not return a checkout link. Try again.");
+        if (!initRes.checkoutUrl) {
+          throw new Error("Gateway did not return a checkout link. Try again.");
+        }
+
+        // Send the bidder to the hosted checkout in a new tab so this gate can
+        // keep polling until the gateway confirms the payment.
+        setCheckoutUrl(initRes.checkoutUrl);
+        window.open(initRes.checkoutUrl, "_blank", "noopener,noreferrer");
       }
 
       // 3. Confirm with the gateway — may stay PENDING until the user finishes checkout
@@ -185,7 +195,7 @@ export default function AuctionAccessGate({ open, onClose, auctionItemId, onAcce
 
       if (confirmRes.data?.needsVerification) {
         throw new Error(
-          "Payment is still processing. Complete the PayChangu checkout, then reopen this gate to continue."
+          "Payment is still processing. Complete the PayChangu checkout in the other tab, then reopen this gate to continue."
         );
       }
 
@@ -302,16 +312,32 @@ export default function AuctionAccessGate({ open, onClose, auctionItemId, onAcce
               />
 
               {error && stepState === "error" && (
-                <div className="flex items-center gap-2 p-3 bg-red-500/5 border border-red-500/20 rounded-xl">
-                  <XCircle className="w-4 h-4 text-red-400 shrink-0" />
-                  <p className="text-[11px] text-red-400">{error}</p>
+                <div className="flex flex-col gap-2 p-3 bg-red-500/5 border border-red-500/20 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <XCircle className="w-4 h-4 text-red-400 shrink-0" />
+                    <p className="text-[11px] text-red-400">{error}</p>
+                  </div>
+                  {checkoutUrl && (
+                    <a
+                      href={checkoutUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="self-start flex items-center gap-1.5 px-3 py-1.5 bg-[var(--color-primary)] text-white rounded-lg text-[10px] font-bold hover:bg-[var(--color-primary)]/90 transition-all"
+                    >
+                      <CreditCard className="w-3 h-3" /> Reopen secure checkout
+                    </a>
+                  )}
                 </div>
               )}
 
               {stepState === "confirming" && (
-                <div className="flex items-center gap-2 p-3 bg-[var(--color-secondary)]/5 border border-[var(--color-primary)]/20 rounded-xl">
-                  <Loader2 className="w-4 h-4 animate-spin text-[var(--color-primary)]" />
-                  <p className="text-[11px] text-[var(--color-text)]">Confirming your payment with the gateway...</p>
+                <div className="flex items-start gap-2 p-3 bg-[var(--color-secondary)]/5 border border-[var(--color-primary)]/20 rounded-xl">
+                  <Loader2 className="w-4 h-4 animate-spin text-[var(--color-primary)] shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-[var(--color-text)]">
+                    {checkoutUrl
+                      ? "Waiting for you to complete the PayChangu checkout in the other tab…"
+                      : "Confirming your payment with the gateway..."}
+                  </p>
                 </div>
               )}
 
