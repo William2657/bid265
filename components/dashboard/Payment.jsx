@@ -142,8 +142,8 @@ const PayChanguModal = ({ isOpen, onClose, paymentType, amount, method, onSucces
         phone: formData.phone,
         method,
         purpose: paymentType,
-        callback_url: CALLBACK_URL,
-        return_url: RETURN_URL,
+        callback_url: CALLBACK_URL || `${window.location.origin}/api/paychangu/callback`,
+        return_url: RETURN_URL || `${window.location.origin}/dashboard?tab=payments`,
       });
 
       console.log("[Payment] Initiate response:", data);

@@ -81,6 +81,9 @@ export async function getAuctionAccessStatus(auctionItemId) {
         biddingFeePaid,
         depositPaid,
         nextStep,
+        // Lets the client know whether a real gateway checkout is required
+        // (in local/sandbox mode with no key, confirmation auto-clears).
+        gatewayConfigured: Boolean(process.env.PAYCHANGU_SECRET_KEY),
         pendingBiddingFeeRef: biddingFeePayment?.status === "PENDING" ? biddingFeePayment.paymentRef : null,
         pendingDepositRef: depositPayment?.status === "PENDING" ? depositPayment.paymentRef : null,
       },

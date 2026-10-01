@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { 
   LogOut, 
   Gavel,
@@ -42,6 +42,16 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
   const [searchQuery, setSearchQuery] = useState("");
 
   const dropdownRef = useRef(null);
+
+  // Sign out via NextAuth, then leave the dashboard for the landing page.
+  const handleLogout = async () => {
+    try {
+      await signOut({ callbackUrl: "/" });
+    } catch (err) {
+      console.error("Sign out failed:", err);
+      window.location.assign("/");
+    }
+  };
 
   // Derive live count from serializedAuctionItems to avoid synchronous setState in effects.
   // Keep a state fallback for compatibility, but prefer memoized derived value.
@@ -206,9 +216,9 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
 
             {/* Desktop Logout */}
             <div className="hidden md:block">
-              <Link href="/api/auth/signout" className="inline-flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-[var(--color-muted)] hover:text-white bg-[var(--color-input)] hover:bg-red-500/80 rounded-xl transition-all border border-[var(--color-border)] hover:border-red-500/50 shadow-sm">
+              <button type="button" onClick={handleLogout} className="inline-flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-[var(--color-muted)] hover:text-white bg-[var(--color-input)] hover:bg-red-500/80 rounded-xl transition-all border border-[var(--color-border)] hover:border-red-500/50 shadow-sm">
                 <LogOut className="w-3 h-3" /> Exit
-              </Link>
+              </button>
             </div>
 
             {/* Mobile Profile Avatar */}
@@ -243,14 +253,17 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
                   </div>
 
                   <div className="px-3 pt-2 pb-1">
-                    <Link 
-                      href="/api/auth/signout" 
-                      onClick={() => setIsProfileDropdownOpen(false)}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileDropdownOpen(false);
+                        handleLogout();
+                      }}
                       className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-bold text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500 rounded-xl transition-all border border-red-500/20 hover:border-red-500"
                     >
                       <LogOut className="w-3.5 h-3.5 shrink-0" />
                       <span>Disconnect Session</span>
-                    </Link>
+                    </button>
                   </div>
                 </div>
               )}
