@@ -74,7 +74,18 @@ export default function BidderLiveConsole({ auctionItems = [] }) {
 
       if (!gate.cleared) {
         setIsJoiningId(null);
-        setGateAuction({ roomId: String(targetRoomId), auctionItemId: itemDbId });
+        setGateAuction({
+          roomId: String(targetRoomId),
+          auctionItemId: itemDbId,
+          isLive: auction.status === "ACTIVE" || auction.status === "LIVE" || Boolean(auction.roomId),
+        });
+        return;
+      }
+
+      // Fees confirmed — only connect to the room once the auction is live.
+      if (!(auction.status === "ACTIVE" || auction.status === "LIVE" || auction.roomId)) {
+        setIsJoiningId(null);
+        alert("✅ Bidding fee and security deposit confirmed. This auction has not gone live yet — come back to this tab once the auctioneer starts it.");
         return;
       }
 
@@ -99,6 +110,12 @@ export default function BidderLiveConsole({ auctionItems = [] }) {
     if (!gateAuction) return;
     const targetRoomId = gateAuction.roomId;
     const itemDbId = gateAuction.auctionItemId;
+
+    if (!gateAuction.isLive) {
+      setGateAuction(null);
+      alert("✅ Bidding fee and security deposit confirmed. This auction has not gone live yet — come back to this tab once the auctioneer starts it.");
+      return;
+    }
 
     try {
       const tokenPromise = getLiveKitToken(targetRoomId, itemDbId);
@@ -180,10 +197,11 @@ export default function BidderLiveConsole({ auctionItems = [] }) {
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-2">
             <h2 className="text-sm sm:text-base font-black tracking-tight flex items-center gap-2">
-              <Tv className="w-5 h-5" /> Live Auction Floor
+              <Tv className="w-5 h-5" /> Auctions
             </h2>
             <p className="text-[11px] sm:text-xs text-[var(--color-bg)]/70 max-w-xl leading-relaxed">
-              Browse active auctions, join live streams, and place bids on premium real estate and vehicles in real-time.
+              Goods and assets consigned to auctioneers for auction. Pay the bidding fee and the
+              security deposit to join an auction and place your bids live.
             </p>
           </div>
           <div className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl px-5 py-3 shrink-0 flex items-center gap-4 self-start sm:self-center">
@@ -247,12 +265,12 @@ export default function BidderLiveConsole({ auctionItems = [] }) {
           <div className="flex items-center gap-2">
             <Gavel className="w-4 h-4 text-[var(--color-primary)]" />
             <h3 className="text-xs font-black tracking-wider uppercase text-[var(--color-text)]">
-              Active Auctions ({filteredAuctions.length})
+              Listed Auctions ({filteredAuctions.length})
             </h3>
           </div>
           <div className="flex items-center gap-1 text-[10px] text-[var(--color-muted)]">
             <TrendingUp className="w-3 h-3" />
-            <span>Sorted by closing soon</span>
+            <span>Join requires bidding fee + security deposit</span>
           </div>
         </div>
 
@@ -271,7 +289,7 @@ export default function BidderLiveConsole({ auctionItems = [] }) {
             <Tv className="w-12 h-12 text-[var(--color-muted)] mx-auto mb-4 opacity-50" />
             <p className="text-sm text-[var(--color-muted)] font-medium">
               {activeAuctions.length === 0 
-                ? "No active auctions at the moment. Check back soon!" 
+                ? "No auctions listed right now. Check back soon!" 
                 : "No auctions match your search criteria."}
             </p>
             {activeAuctions.length === 0 && (

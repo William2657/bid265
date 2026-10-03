@@ -3,8 +3,6 @@
 import React, { useState } from "react";
 import { Mail, Lock, User, Phone, Building2, Gavel } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
-import { signIn } from "next-auth/react";
 
 export default function SignUpPage() {
   const [role, setRole] = useState("BIDDER");
@@ -102,11 +100,11 @@ export default function SignUpPage() {
           </button>
         </div>
 
-        {/* Input Form */}
+        {/* Input Form — every detail is collected here; no third-party sign-in */}
         <form className="space-y-4" onSubmit={handleCredentialsSubmit}>
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)] mb-1.5">
-              Full Name
+              {role === "AUCTIONEER" ? "Auctioneer Name" : "Full Name"}
             </label>
             <div className="relative">
               <User className="w-4 h-4 text-[var(--color-muted)] absolute left-3 top-3" />
@@ -115,7 +113,7 @@ export default function SignUpPage() {
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                placeholder="John Doe" 
+                placeholder={role === "AUCTIONEER" ? "e.g. Blantyre Auction House" : "John Doe"} 
                 className="w-full bg-[var(--color-input)] border border-[var(--color-border)] rounded-xl py-2.5 pl-10 pr-4 text-sm text-[var(--color-text)] placeholder-[var(--color-muted)] focus:outline-none focus:border-[var(--color-primary)] focus:bg-[var(--color-card)] transition-colors"
                 required 
                 disabled={loading}
@@ -188,32 +186,6 @@ export default function SignUpPage() {
             {loading ? "Creating Account..." : `Create ${role === "BIDDER" ? "Bidder" : "Auctioneer"} Account`}
           </button>
         </form>
-
-        {/* Divider */}
-        <div className="relative my-6 text-center">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-[var(--color-border)]"></div>
-          </div>
-          <span className="relative bg-[var(--color-card)] px-3 text-xs font-medium text-[var(--color-muted)] uppercase tracking-wider">
-            Or register with
-          </span>
-        </div>
-
-        {/* Google Auth */}
-        <button 
-          type="button" 
-          onClick={() => signIn("google", { callbackUrl: "/" })}
-          className="w-full flex items-center justify-center gap-3 border border-[var(--color-border)] hover:bg-[var(--color-input)] text-[var(--color-text)] font-semibold text-sm rounded-xl py-2.5 transition-all duration-300"
-        >
-          <Image 
-            src="/google.svg" 
-            alt="Google Logo" 
-            width={18} 
-            height={18} 
-            priority
-          />
-          Continue with Google
-        </button>
 
         <p className="text-center text-sm text-[var(--color-muted)] mt-6">
           Already have an account?{" "}

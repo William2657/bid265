@@ -77,7 +77,7 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
   const getTabLabel = (tab) => {
     const labels = {
       "dashboard": "Dashboard",
-      "live-auctions": isAuctioneer ? "Manage Auctions" : "Live Auction Floor",
+      "live-auctions": "Auctions",
       "daily-sales": "Daily Sales",
       "properties": "Properties",
       "my-bids": "My Bids",
@@ -92,7 +92,7 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
 
   const navItems = [
     { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", show: true },
-    { id: "live-auctions", icon: Tv, label: isAuctioneer ? "Manage Auctions" : "Live Auction Floor", show: true, badge: liveCount },
+    { id: "live-auctions", icon: Tv, label: "Auctions", show: true, badge: liveCount },
     { id: "daily-sales", icon: ShoppingBag, label: "Daily Sales", show: !isAuctioneer },
     { id: "properties", icon: Home, label: "Properties", show: !isAuctioneer },
     { id: "my-bids", icon: Gavel, label: "My Bids", show: !isAuctioneer },
@@ -217,7 +217,7 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
             {/* Desktop Logout */}
             <div className="hidden md:block">
               <button type="button" onClick={handleLogout} className="inline-flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-[var(--color-muted)] hover:text-white bg-[var(--color-input)] hover:bg-red-500/80 rounded-xl transition-all border border-[var(--color-border)] hover:border-red-500/50 shadow-sm">
-                <LogOut className="w-3 h-3" /> Exit
+                <LogOut className="w-3 h-3" /> Logout
               </button>
             </div>
 
@@ -262,7 +262,7 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
                       className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-bold text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500 rounded-xl transition-all border border-red-500/20 hover:border-red-500"
                     >
                       <LogOut className="w-3.5 h-3.5 shrink-0" />
-                      <span>Disconnect Session</span>
+                      <span>Logout</span>
                     </button>
                   </div>
                 </div>
@@ -460,9 +460,7 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
           }`}
         >
           <Tv className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] tracking-tight">
-            {isAuctioneer ? "Manage" : "Bids"}
-          </span>
+          <span className="text-[10px] tracking-tight">Auctions</span>
           {liveCount > 0 && (
             <span className="absolute top-2.5 right-6 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
           )}

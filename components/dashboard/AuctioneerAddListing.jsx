@@ -9,24 +9,25 @@ import {
   DollarSign,
   UploadCloud,
   ArrowLeft,
-  ShoppingBag,
-  Home,
 } from "lucide-react";
-import { createAssetAndAuction } from "@/app/actions/createAssetAndAuction";
 import { createDailySaleListing } from "@/app/actions/createDailySale";
+import { createPropertyListing } from "@/app/actions/createPropertyListing";
 
 /**
- * 📝 ADD LISTING FORM
+ * 📝 ADD LISTING FORM — one dedicated form per listing section.
  *
- * The Manage Listings section's "Add Listing" button redirects here.
- * Mode "daily-sale"  → commodity listing with a fixed buy-now price.
- * Mode "property"    → property auction listing with starting bid / reserve / deposit / bidding fee.
+ * The Daily Sales section's Add button opens mode="daily-sale" (commodity
+ * listing with a fixed buy-now price); the Properties section's Add button
+ * opens mode="property" (land/building listed for sale). There is no shared
+ * form and no type switcher — the nav bar already separates the sections.
  */
 export default function AuctioneerAddListing({ initialMode = "property" }) {
   const router = useRouter();
-  const [mode, setMode] = useState(initialMode === "daily-sale" ? "daily-sale" : "property");
+  const [mode] = useState(initialMode === "daily-sale" ? "daily-sale" : "property");
   const [isPublishing, setIsPublishing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("REAL_ESTATE");
+  const [selectedCategory, setSelectedCategory] = useState(
+    initialMode === "daily-sale" ? "VEHICLE" : "REAL_ESTATE"
+  );
   const [customCategory, setCustomCategory] = useState("");
   const [uploadedFile, setUploadedFile] = useState(null);
 
@@ -36,7 +37,7 @@ export default function AuctioneerAddListing({ initialMode = "property" }) {
 
   const [form, setForm] = useState({
     title: "", description: "", location: "", documentUrl: "",
-    startingBid: "", reservePrice: "", depositAmount: "",
+    salePrice: "",
     biddingFee: "", price: "", stockCount: "1",
   });
 
@@ -81,16 +82,13 @@ export default function AuctioneerAddListing({ initialMode = "property" }) {
         if (!res.success) throw new Error(res.error);
         alert("🎉 Daily sale listing published!");
       } else {
-        formData.append("startingBid", form.startingBid);
-        formData.append("reservePrice", form.reservePrice);
-        formData.append("depositAmount", form.depositAmount);
-        formData.append("biddingFee", form.biddingFee || "0");
-        const res = await createAssetAndAuction(formData);
-        if (!res.success) throw new Error(res.error || "Failed to publish auction listing.");
-        alert("🎉 Property auction listing registered!");
+        formData.append("salePrice", form.salePrice);
+        const res = await createPropertyListing(formData);
+        if (!res.success) throw new Error(res.error || "Failed to publish the property listing.");
+        alert("🎉 Property listed for sale!");
       }
 
-      router.push("/dashboard");
+      router.push("/dashboard?tab=manage-listings");
       router.refresh();
     } catch (err) {
       alert(err.message || "Publishing failed.");
@@ -106,7 +104,7 @@ export default function AuctioneerAddListing({ initialMode = "property" }) {
       <div className="p-5 border-b border-[var(--color-border)] bg-[var(--color-input)]/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link
-            href="/dashboard"
+            href="/dashboard?tab=manage-listings"
             className="p-2 rounded-xl bg-[var(--color-input)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-primary)] transition-colors"
             title="Back to Manage Listings"
           >
@@ -114,30 +112,10 @@ export default function AuctioneerAddListing({ initialMode = "property" }) {
           </Link>
           <div className="flex items-center gap-2">
             <LayoutGrid className="w-4 h-4 text-[var(--color-primary)]" />
-            <h3 className="text-xs font-bold text-[var(--color-text)] uppercase tracking-wider">Add New Listing</h3>
+            <h3 className="text-xs font-bold text-[var(--color-text)] uppercase tracking-wider">
+              {mode === "daily-sale" ? "Add Daily Sale Listing" : "Add Property Listing"}
+            </h3>
           </div>
-        </div>
-
-        {/* Listing type switch */}
-        <div className="flex items-center gap-2 bg-[var(--color-input)] border border-[var(--color-border)] rounded-xl p-1 w-fit">
-          <button
-            type="button"
-            onClick={() => { setMode("daily-sale"); setSelectedCategory("OTHER"); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
-              mode === "daily-sale" ? "bg-[var(--color-secondary)] text-white" : "text-[var(--color-muted)] hover:text-[var(--color-text)]"
-            }`}
-          >
-            <ShoppingBag className="w-3.5 h-3.5" /> Daily Sale
-          </button>
-          <button
-            type="button"
-            onClick={() => { setMode("property"); setSelectedCategory("REAL_ESTATE"); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
-              mode === "property" ? "bg-[var(--color-secondary)] text-white" : "text-[var(--color-muted)] hover:text-[var(--color-text)]"
-            }`}
-          >
-            <Home className="w-3.5 h-3.5" /> Property
-          </button>
         </div>
       </div>
 
@@ -224,7 +202,7 @@ export default function AuctioneerAddListing({ initialMode = "property" }) {
           </div>
         </div>
 
-        {/* Pricing */}
+        {/* Pricing — daily sales carry a buy-now price; properties carry a sale price */}
         {mode === "daily-sale" ? (
           <div className="bg-[var(--color-secondary)]/5 p-4 border border-[var(--color-primary)]/10 rounded-xl">
             <div className="flex items-center gap-1.5 border-b border-[var(--color-primary)]/10 pb-2 mb-3">
@@ -246,24 +224,18 @@ export default function AuctioneerAddListing({ initialMode = "property" }) {
           <div className="bg-[var(--color-secondary)]/5 p-4 border border-[var(--color-primary)]/10 rounded-xl">
             <div className="flex items-center gap-1.5 border-b border-[var(--color-primary)]/10 pb-2 mb-3">
               <DollarSign className="w-3.5 h-3.5 text-[var(--color-primary)]" />
-              <span className="text-[10px] font-bold text-[var(--color-text)] uppercase tracking-wider">Financial Pricing Framework</span>
+              <span className="text-[10px] font-bold text-[var(--color-text)] uppercase tracking-wider">Property Sale Price</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-bold text-[var(--color-muted)] uppercase mb-1">Starting Bid (MWK)</label>
-                <input type="number" required placeholder="5000000" value={form.startingBid} onChange={(e) => setForm({...form, startingBid: e.target.value})} className={inputClass} />
+                <label className="block text-[10px] font-bold text-[var(--color-muted)] uppercase mb-1">Sale Price (MWK)</label>
+                <input type="number" required placeholder="45000000" value={form.salePrice} onChange={(e) => setForm({...form, salePrice: e.target.value})} className={inputClass} />
               </div>
-              <div>
-                <label className="block text-[10px] font-bold text-[var(--color-muted)] uppercase mb-1">Reserve Price (MWK)</label>
-                <input type="number" required placeholder="7500000" value={form.reservePrice} onChange={(e) => setForm({...form, reservePrice: e.target.value})} className={inputClass} />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-[var(--color-muted)] uppercase mb-1">Security Deposit (MWK)</label>
-                <input type="number" required placeholder="250000" value={form.depositAmount} onChange={(e) => setForm({...form, depositAmount: e.target.value})} className={inputClass} />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-[var(--color-muted)] uppercase mb-1">Bidding Fee (MWK)</label>
-                <input type="number" required placeholder="10000" value={form.biddingFee} onChange={(e) => setForm({...form, biddingFee: e.target.value})} className={inputClass} />
+              <div className="flex items-end">
+                <p className="text-[11px] text-[var(--color-muted)] leading-relaxed">
+                  Properties are listed <span className="font-bold text-[var(--color-text)]">for sale</span>, not for
+                  auction. Bidders purchase directly from the Properties tab and receive a receipt by email.
+                </p>
               </div>
             </div>
           </div>
@@ -271,7 +243,7 @@ export default function AuctioneerAddListing({ initialMode = "property" }) {
 
         <div className="flex justify-end pt-2">
           <button type="submit" disabled={isPublishing} className="px-6 py-3 bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white text-xs font-bold rounded-xl shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95">
-            {isPublishing ? "Publishing..." : mode === "daily-sale" ? "Publish Daily Sale" : "Save Asset & Add to Inventory"}
+            {isPublishing ? "Publishing..." : mode === "daily-sale" ? "Publish Daily Sale" : "Publish Property Listing"}
           </button>
         </div>
       </div>

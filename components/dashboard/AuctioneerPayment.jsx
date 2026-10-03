@@ -8,7 +8,7 @@ import {
   ExternalLink, Bug, Star, ShieldCheck, Clock
 } from "lucide-react";
 import {
-  initiatePayment, fetchPayments, fetchUserProfile,
+  initiatePayment, fetchPaymentBundle, fetchUserProfile,
   generateTxRef, formatAmount, formatDate, parseName,
   getStatusColor, getMethodStyle,
 } from "@/lib/payments";
@@ -338,6 +338,7 @@ export default function AuctioneerPayment() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTier, setModalTier] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [feePayments, setFeePayments] = useState([]);
   const [txLoading, setTxLoading] = useState(false);
   const [dbUser, setDbUser] = useState(null);
 
@@ -346,12 +347,14 @@ export default function AuctioneerPayment() {
   const loadTransactions = useCallback(async () => {
     setTxLoading(true);
     try {
-      const payments = await fetchPayments();
+      const bundle = await fetchPaymentBundle();
       // Filter only auctioneer subscription payments
-      const subs = payments.filter(p =>
+      const subs = bundle.payments.filter(p =>
         p.purpose && p.purpose.includes("AUCTIONEER_SUBSCRIPTION")
       );
       setTransactions(subs);
+      // Bidding fees + security deposits paid against this auctioneer's auctions
+      setFeePayments(bundle.accessPayments);
     } catch (err) {
       console.error(err);
     } finally {
@@ -593,6 +596,92 @@ export default function AuctioneerPayment() {
             })
           )}
         </div>
+      </div>
+
+      {/* ═══ BIDDING FEE & SECURITY DEPOSIT PAYMENTS RECEIVED ═══ */}
+      <div className="bg-[var(--color-card)] p-6 rounded-2xl border border-[var(--color-border)] shadow-sm space-y-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-[var(--color-text)]">Bidding Fees &amp; Security Deposits</h2>
+            <p className="text-xs text-[var(--color-muted)] mt-0.5">
+              Payment history for every bidding fee and security deposit paid against your auctions
+            </p>
+          </div>
+          <ShieldCheck className="w-5 h-5 text-[var(--color-primary)]" />
+        </div>
+
+        {feePayments.length === 0 ? (
+          <div className="p-8 text-center border border-dashed border-[var(--color-border)] rounded-xl">
+            <Wallet className="w-8 h-8 text-[var(--color-muted)] mx-auto mb-2" />
+            <p className="text-sm text-[var(--color-muted)]">No bidding fees or deposits paid yet</p>
+            <p className="text-[10px] text-[var(--color-muted)] mt-1">
+              Bidders pay these when joining one of your auctions
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[640px]">
+              <thead>
+                <tr className="bg-[var(--color-input)]/60 border-b border-[var(--color-border)]">
+                  <th className="text-left px-3 py-2.5 text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-wider">Bidder</th>
+                  <th className="text-left px-3 py-2.5 text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-wider">Payment Type</th>
+                  <th className="text-left px-3 py-2.5 text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-wider">Auction</th>
+                  <th className="text-left px-3 py-2.5 text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-wider">Date</th>
+                  <th className="text-left px-3 py-2.5 text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-wider">Reference</th>
+                  <th className="text-right px-3 py-2.5 text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-wider">Amount</th>
+                  <th className="text-right px-3 py-2.5 text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--color-border)]">
+                {feePayments.map((p) => (
+                  <tr key={p.id} className="hover:bg-[var(--color-input)]/30 transition-colors">
+                    <td className="px-3 py-3">
+                      <p className="text-xs font-semibold text-[var(--color-text)] truncate max-w-[150px]">{p.payerName || "Bidder"}</p>
+                      {p.payerEmail && (
+                        <p className="text-[10px] text-[var(--color-muted)] truncate max-w-[150px]">{p.payerEmail}</p>
+                      )}
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold border ${
+                        p.feeType === "SECURITY_DEPOSIT"
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          : "bg-[var(--color-secondary)]/10 text-[var(--color-primary)] border-[var(--color-primary)]/20"
+                      }`}>
+                        {p.feeType === "SECURITY_DEPOSIT" ? "Security Deposit" : "Bidding Fee"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <p className="text-xs font-semibold text-[var(--color-text)] truncate max-w-[180px]">{p.auctionTitle}</p>
+                      {p.auctionLocation && (
+                        <p className="text-[10px] text-[var(--color-muted)] truncate max-w-[180px]">{p.auctionLocation}</p>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 text-xs text-[var(--color-muted)] whitespace-nowrap">
+                      {formatDate(p.paidAt || p.createdAt)}
+                    </td>
+                    <td className="px-3 py-3 text-[11px] font-mono text-[var(--color-muted)]">
+                      {p.paymentRef || "—"}
+                    </td>
+                    <td className="px-3 py-3 text-right text-xs font-bold text-[var(--color-text)] whitespace-nowrap">
+                      {formatAmount(p.amount)}
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      <span className={`text-[10px] font-bold uppercase ${
+                        p.status === "PAID"
+                          ? "text-emerald-400"
+                          : p.status === "FAILED"
+                          ? "text-red-400"
+                          : "text-yellow-400"
+                      }`}>
+                        {p.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <SubscriptionModal

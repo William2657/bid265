@@ -21,7 +21,10 @@ export default async function DashboardPage() {
   let serializedAuctionItems = [];
   
   if (isAuctioneer) {
+    // Each auctioneer only ever sees the auctions they created — never
+    // another auctioneer's listings from the shared database.
     const rawAuctionItems = await prisma.auctionItem.findMany({
+      where: { asset: { createdById: user.id } },
       include: { asset: true },
       orderBy: { createdAt: "desc" },
     });
