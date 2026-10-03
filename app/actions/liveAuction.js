@@ -33,6 +33,15 @@ export async function approveAndStartLiveAuction(auctionItemId) {
       return { success: false, error: "Provided auction item ID is invalid." };
     }
 
+    // Ownership guard — an auctioneer can only launch their own listings.
+    const owned = await prisma.auctionItem.findFirst({
+      where: { id: cleanId, asset: { createdById: Number(session.user.id) } },
+      select: { id: true },
+    });
+    if (!owned && session.user.role !== "ADMIN") {
+      return { success: false, error: "This auction belongs to another auctioneer." };
+    }
+
     const generatedRoomId = `room-lot-${cleanId}-${Date.now()}`;
 
     const updatedItem = await prisma.auctionItem.update({
@@ -290,6 +299,9 @@ export async function getAuctionItemDetails(auctionItemId) {
 
 /**
  * 📡 DATABASE CATCH-UP ENGINE
+ * Bidder-facing feed of listed auctions (goods & assets consigned for auction).
+ * Property listings and daily sale goods are separate fields — they live under
+ * the Properties / Daily Sales tabs, never here.
  */
 export async function getActiveLiveAuctions() {
   try {
@@ -299,14 +311,18 @@ export async function getActiveLiveAuctions() {
     }
 
     const activeItems = await prisma.auctionItem.findMany({
-      where: { status: "ACTIVE" },
+      where: {
+        status: { in: ["UPCOMING", "ACTIVE", "LIVE"] },
+        asset: { salesType: { notIn: ["PROPERTY", "DAILY_SALE"] } },
+      },
       include: {
         asset: true,
         images: {
           where: { isPrimary: true },
           take: 1
         }
-      }
+      },
+      orderBy: { startTime: "asc" },
     });
 
     return {
@@ -320,8 +336,13 @@ export async function getActiveLiveAuctions() {
         description: item.asset?.description || "No asset description listed.",
         location: item.asset?.location || "N/A",
         category: item.asset?.category || "General",
+        status: item.status || "UPCOMING",
         startingBid: Number(item.startingBid),
+        reservePrice: Number(item.reservePrice),
         depositAmount: Number(item.depositAmount),
+        biddingFee: Number(item.biddingFee || 0),
+        startTime: item.startTime ? item.startTime.toISOString() : null,
+        endTime: item.endTime ? item.endTime.toISOString() : null,
         imageUrl: item.images[0]?.url || "/placeholder-property.jpg",
         createdAt: item.updatedAt.toISOString()
       }))
@@ -340,6 +361,15 @@ export async function updateAuctionToLiveDirectly(itemId, computedRoomId) {
     const session = await auth();
     if (!session || (session.user.role !== "AUCTIONEER" && session.user.role !== "ADMIN")) {
       return { success: false, error: "Unauthorized structural database update." };
+    }
+
+    // Ownership guard — an auctioneer can only touch their own listings.
+    const owned = await prisma.auctionItem.findFirst({
+      where: { id: Number(itemId), asset: { createdById: Number(session.user.id) } },
+      select: { id: true },
+    });
+    if (!owned && session.user.role !== "ADMIN") {
+      return { success: false, error: "This auction belongs to another auctioneer." };
     }
 
     const record = await prisma.auctionItem.update({
@@ -365,6 +395,15 @@ export async function closeLiveAuctionDirectly(itemId) {
     const session = await auth();
     if (!session || (session.user.role !== "AUCTIONEER" && session.user.role !== "ADMIN")) {
       return { success: false, error: "Unauthorized structural database update." };
+    }
+
+    // Ownership guard — an auctioneer can only touch their own listings.
+    const owned = await prisma.auctionItem.findFirst({
+      where: { id: Number(itemId), asset: { createdById: Number(session.user.id) } },
+      select: { id: true },
+    });
+    if (!owned && session.user.role !== "ADMIN") {
+      return { success: false, error: "This auction belongs to another auctioneer." };
     }
 
     const record = await prisma.auctionItem.update({

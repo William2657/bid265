@@ -7,8 +7,9 @@ import { prisma } from "@/lib/prisma";
  *
  * Bidder-facing marketplace feed:
  *  - tab=daily-sales  → regular sold commodities / goods (DAILY_SALE listings)
- *  - tab=properties   → land & buildings (PROPERTY listings), searchable by location
+ *  - tab=properties   → land & buildings listed FOR SALE (PROPERTY listings)
  *
+ * A single `q` search covers title, description, category and location.
  * Both tabs search across ALL auctioneers registered on the system.
  */
 export async function GET(request) {
@@ -109,6 +110,12 @@ export async function GET(request) {
         asset.auctionItems[0] ||
         null;
 
+      const salePrice = asset.salePrice
+        ? Number(asset.salePrice)
+        : liveAuction
+        ? Number(liveAuction.reservePrice || liveAuction.startingBid)
+        : null;
+
       return {
         id: asset.id,
         auctionItemId: liveAuction?.id || null,
@@ -116,6 +123,7 @@ export async function GET(request) {
         description: asset.description,
         category: asset.category,
         location: asset.location,
+        price: salePrice,
         startingBid: liveAuction ? Number(liveAuction.startingBid) : null,
         currentBid: liveAuction?.bids?.[0] ? Number(liveAuction.bids[0].amount) : null,
         auctionStatus: liveAuction?.status || null,

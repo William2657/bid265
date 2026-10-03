@@ -36,12 +36,15 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    const properties = await prisma.auctionItem.findMany({
-      where: { asset: { createdById: userId, salesType: "PROPERTY" } },
+    // Properties are LISTED FOR SALE (not auctioned) — read them as assets.
+    const propertyAssets = await prisma.asset.findMany({
+      where: { createdById: userId, salesType: "PROPERTY" },
       include: {
-        asset: true,
-        images: { where: { isPrimary: true }, take: 1 },
-        bids: { orderBy: { amount: "desc" }, take: 1 },
+        auctionItems: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          include: { images: { where: { isPrimary: true }, take: 1 } },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -61,22 +64,31 @@ export async function GET() {
         imageUrl: sale.asset.auctionItems?.[0]?.images?.[0]?.url || null,
         createdAt: sale.createdAt.toISOString(),
       })),
-      properties: properties.map((item) => ({
-        id: item.id,
-        assetId: item.assetId,
-        title: item.asset.title,
-        description: item.asset.description,
-        category: item.asset.category,
-        location: item.asset.location,
-        startingBid: Number(item.startingBid),
-        reservePrice: Number(item.reservePrice),
-        depositAmount: Number(item.depositAmount),
-        biddingFee: Number(item.biddingFee),
-        status: item.status,
-        currentBid: item.bids[0] ? Number(item.bids[0].amount) : null,
-        imageUrl: item.images[0]?.url || null,
-        createdAt: item.createdAt.toISOString(),
-      })),
+      properties: propertyAssets.map((asset) => {
+        const lot = asset.auctionItems?.[0] || null;
+        const salePrice = asset.salePrice
+          ? Number(asset.salePrice)
+          : lot
+          ? Number(lot.reservePrice)
+          : 0;
+        return {
+          id: asset.id,
+          assetId: asset.id,
+          title: asset.title,
+          description: asset.description,
+          category: asset.category,
+          location: asset.location,
+          salePrice,
+          isSold: asset.isSold,
+          status: asset.isSold
+            ? "SOLD"
+            : lot && lot.status !== "CLOSED"
+            ? lot.status
+            : "LISTED",
+          imageUrl: lot?.images?.[0]?.url || null,
+          createdAt: asset.createdAt.toISOString(),
+        };
+      }),
     });
   } catch (error) {
     console.error("[Listings API]", error);

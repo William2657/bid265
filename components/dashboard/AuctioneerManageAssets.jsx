@@ -22,7 +22,8 @@ import { toggleDailySaleAvailability } from "@/app/actions/createDailySale";
  * Document requirements:
  *  - Two columns: one for Daily Sales, one for Properties.
  *  - All listings made for each section are managed under their respective column.
- *  - An "Add Listing" button that redirects to a form collecting the necessary fields.
+ *  - No global Add button: each section keeps its own Add button, which opens
+ *    that section's dedicated form (daily sale form vs. property form).
  */
 export default function AuctioneerManageAssets() {
   const [dailySales, setDailySales] = useState([]);
@@ -71,11 +72,14 @@ export default function AuctioneerManageAssets() {
 
   const StatusChip = ({ status }) => {
     const isLive = status === "ACTIVE" || status === "LIVE";
+    const isSold = status === "SOLD";
     return (
       <span
         className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md flex items-center gap-1 border ${
           isLive
             ? "bg-red-500/10 text-red-400 border-red-500/20"
+            : isSold
+            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
             : status === "CLOSED"
             ? "bg-[var(--color-input)] text-[var(--color-muted)] border-[var(--color-border)]"
             : "bg-[var(--color-secondary)]/10 text-[var(--color-primary)] border-[var(--color-primary)]/20"
@@ -83,6 +87,8 @@ export default function AuctioneerManageAssets() {
       >
         {isLive ? (
           <><span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" /> Live</>
+        ) : isSold ? (
+          <><PackageCheck className="w-2.5 h-2.5" /> Sold</>
         ) : status === "CLOSED" ? (
           <><Trash2 className="w-2.5 h-2.5" /> Ended</>
         ) : (
@@ -103,20 +109,15 @@ export default function AuctioneerManageAssets() {
 
   return (
     <div className="space-y-6 pb-10">
-      {/* Header row with global Add Listing */}
+      {/* Header row — each section below owns its own Add button */}
       <div className="bg-[var(--color-card)] rounded-2xl p-5 border border-[var(--color-border)] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-sm font-bold text-[var(--color-text)]">Manage Listings</h2>
           <p className="text-[11px] text-[var(--color-muted)] mt-0.5">
-            Every daily sale and property listing you publish is managed under its column below.
+            Every daily sale and property listing you publish is managed under its column below —
+            use the Add button inside each section for that section&apos;s own form.
           </p>
         </div>
-        <Link
-          href="/dashboard/add-listing"
-          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white text-xs font-bold rounded-xl transition-all active:scale-95 shadow-md shadow-[var(--color-primary)]/20 shrink-0"
-        >
-          <Plus className="w-4 h-4" /> Add Listing
-        </Link>
       </div>
 
       {loading ? (
@@ -217,7 +218,7 @@ export default function AuctioneerManageAssets() {
                 </div>
                 <div>
                   <h3 className="text-xs font-black tracking-wider uppercase text-[var(--color-text)]">Properties</h3>
-                  <p className="text-[10px] text-[var(--color-muted)]">{properties.length} auction listing{properties.length === 1 ? "" : "s"}</p>
+                  <p className="text-[10px] text-[var(--color-muted)]">{properties.length} propert{properties.length === 1 ? "y" : "ies"} listed for sale</p>
                 </div>
               </div>
               <Link
@@ -252,18 +253,16 @@ export default function AuctioneerManageAssets() {
                         <MapPin className="w-2.5 h-2.5" /> {item.location}
                         <span className="mx-1">•</span> {item.category}
                       </div>
-                      <div className="grid grid-cols-3 gap-2 mt-2 text-[10px]">
-                        <div>
-                          <p className="text-[var(--color-muted)] uppercase font-bold text-[8px]">Start</p>
-                          <p className="font-bold text-[var(--color-text)]">{formatMoney(item.startingBid)}</p>
+                      <div className="grid grid-cols-2 gap-2 mt-2 text-[10px]">
+                        <div className="col-span-1">
+                          <p className="text-[var(--color-muted)] uppercase font-bold text-[8px]">Sale Price</p>
+                          <p className="font-extrabold text-[var(--color-primary)] text-sm">{formatMoney(item.salePrice)}</p>
                         </div>
-                        <div>
-                          <p className="text-[var(--color-muted)] uppercase font-bold text-[8px]">Reserve</p>
-                          <p className="font-bold text-[var(--color-text)]">{formatMoney(item.reservePrice)}</p>
-                        </div>
-                        <div>
-                          <p className="text-[var(--color-muted)] uppercase font-bold text-[8px]">Fee</p>
-                          <p className="font-bold text-[var(--color-primary)]">{formatMoney(item.biddingFee)}</p>
+                        <div className="col-span-1 text-right">
+                          <p className="text-[var(--color-muted)] uppercase font-bold text-[8px]">Listed</p>
+                          <p className="font-bold text-[var(--color-text)]">
+                            {new Date(item.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          </p>
                         </div>
                       </div>
                     </div>
