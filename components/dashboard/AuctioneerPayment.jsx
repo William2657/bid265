@@ -339,6 +339,7 @@ export default function AuctioneerPayment() {
   const [modalTier, setModalTier] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [feePayments, setFeePayments] = useState([]);
+  const [received, setReceived] = useState([]);
   const [txLoading, setTxLoading] = useState(false);
   const [dbUser, setDbUser] = useState(null);
 
@@ -353,8 +354,18 @@ export default function AuctioneerPayment() {
         p.purpose && p.purpose.includes("AUCTIONEER_SUBSCRIPTION")
       );
       setTransactions(subs);
-      // Bidding fees + security deposits paid against this auctioneer's auctions
+      // Bidding fees + entry fees paid against this auctioneer's auctions
       setFeePayments(bundle.accessPayments);
+      // Money received from daily sales, property sales and leases
+      setReceived(
+        bundle.payments.filter(
+          (p) =>
+            p.purpose &&
+            (p.purpose === "DAILY_SALE_RECEIVED" ||
+              p.purpose === "PROPERTY_RECEIVED" ||
+              p.purpose === "PROPERTY_LEASE_RECEIVED")
+        )
+      );
     } catch (err) {
       console.error(err);
     } finally {
@@ -598,13 +609,71 @@ export default function AuctioneerPayment() {
         </div>
       </div>
 
-      {/* ═══ BIDDING FEE & SECURITY DEPOSIT PAYMENTS RECEIVED ═══ */}
+      {/* ═══ PAYMENTS RECEIVED FROM DAILY SALES & PROPERTIES ═══ */}
       <div className="bg-[var(--color-card)] p-6 rounded-2xl border border-[var(--color-border)] shadow-sm space-y-5">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-[var(--color-text)]">Bidding Fees &amp; Security Deposits</h2>
+            <h2 className="text-lg font-bold text-[var(--color-text)]">Payments Received — Daily Sales &amp; Properties</h2>
             <p className="text-xs text-[var(--color-muted)] mt-0.5">
-              Payment history for every bidding fee and security deposit paid against your auctions
+              Every payment buyers have made to you for daily sale goods, property sales and leases
+            </p>
+          </div>
+          <Building2 className="w-5 h-5 text-[var(--color-primary)]" />
+        </div>
+
+        {received.length === 0 ? (
+          <div className="p-8 text-center border border-dashed border-[var(--color-border)] rounded-xl">
+            <Wallet className="w-8 h-8 text-[var(--color-muted)] mx-auto mb-2" />
+            <p className="text-sm text-[var(--color-muted)]">No sales payments received yet</p>
+            <p className="text-[10px] text-[var(--color-muted)] mt-1">
+              Payments appear here when buyers purchase your daily sales or properties
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[560px]">
+              <thead>
+                <tr className="bg-[var(--color-input)]/60 border-b border-[var(--color-border)]">
+                  <th className="text-left px-3 py-2.5 text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-wider">Payment</th>
+                  <th className="text-left px-3 py-2.5 text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-wider">Reference</th>
+                  <th className="text-left px-3 py-2.5 text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-wider">Date</th>
+                  <th className="text-right px-3 py-2.5 text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-wider">Amount</th>
+                  <th className="text-right px-3 py-2.5 text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--color-border)]">
+                {received.map((tx) => (
+                  <tr key={tx.id} className="hover:bg-[var(--color-input)]/30 transition-colors">
+                    <td className="px-3 py-3">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        {tx.purpose === "DAILY_SALE_RECEIVED"
+                          ? "Daily Sale"
+                          : tx.purpose === "PROPERTY_LEASE_RECEIVED"
+                          ? "Property Lease"
+                          : "Property Sale"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-[11px] font-mono text-[var(--color-muted)]">{tx.reference}</td>
+                    <td className="px-3 py-3 text-xs text-[var(--color-muted)] whitespace-nowrap">{formatDate(tx.createdAt)}</td>
+                    <td className="px-3 py-3 text-right text-xs font-bold text-[var(--color-text)] whitespace-nowrap">{formatAmount(tx.amount)}</td>
+                    <td className="px-3 py-3 text-right">
+                      <span className={`text-[10px] font-bold uppercase ${getStatusColor(tx.gatewayStatus)}`}>{tx.gatewayStatus}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ═══ BIDDING FEE & ENTRY FEE PAYMENTS RECEIVED ═══ */}
+      <div className="bg-[var(--color-card)] p-6 rounded-2xl border border-[var(--color-border)] shadow-sm space-y-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-[var(--color-text)]">Bidding Fees &amp; Entry Fees</h2>
+            <p className="text-xs text-[var(--color-muted)] mt-0.5">
+              Payment history for every bidding fee and entry fee paid against your auctions
             </p>
           </div>
           <ShieldCheck className="w-5 h-5 text-[var(--color-primary)]" />
@@ -613,7 +682,7 @@ export default function AuctioneerPayment() {
         {feePayments.length === 0 ? (
           <div className="p-8 text-center border border-dashed border-[var(--color-border)] rounded-xl">
             <Wallet className="w-8 h-8 text-[var(--color-muted)] mx-auto mb-2" />
-            <p className="text-sm text-[var(--color-muted)]">No bidding fees or deposits paid yet</p>
+            <p className="text-sm text-[var(--color-muted)]">No bidding fees or entry fees paid yet</p>
             <p className="text-[10px] text-[var(--color-muted)] mt-1">
               Bidders pay these when joining one of your auctions
             </p>
@@ -647,7 +716,7 @@ export default function AuctioneerPayment() {
                           ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                           : "bg-[var(--color-secondary)]/10 text-[var(--color-primary)] border-[var(--color-primary)]/20"
                       }`}>
-                        {p.feeType === "SECURITY_DEPOSIT" ? "Security Deposit" : "Bidding Fee"}
+                        {p.feeType === "SECURITY_DEPOSIT" ? "Entry Fee" : "Bidding Fee"}
                       </span>
                     </td>
                     <td className="px-3 py-3">

@@ -340,12 +340,12 @@ export default function AuctioneerLiveConsole({ auctionItems = [], onItemsUpdate
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-[var(--color-muted)] uppercase mb-1">
-                  Physical Location
+                  Client Name
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Blantyre Transit Depot"
+                  placeholder="e.g. Chimwemwe Banda"
                   value={form.location}
                   onChange={(e) => setForm({ ...form, location: e.target.value })}
                   className={inputClass}
@@ -487,7 +487,7 @@ export default function AuctioneerLiveConsole({ auctionItems = [], onItemsUpdate
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-[var(--color-muted)] uppercase mb-1">
-                    Security Deposit (MWK)
+                    Entry Fee (MWK)
                   </label>
                   <input
                     type="number"
@@ -497,6 +497,9 @@ export default function AuctioneerLiveConsole({ auctionItems = [], onItemsUpdate
                     onChange={(e) => setForm({ ...form, depositAmount: e.target.value })}
                     className={inputClass}
                   />
+                  <p className="text-[9px] text-[var(--color-muted)] mt-1">
+                    Actual fee a bidder pays to participate in this auction.
+                  </p>
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-[var(--color-muted)] uppercase mb-1">

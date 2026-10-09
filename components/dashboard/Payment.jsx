@@ -339,6 +339,25 @@ const PayChanguModal = ({ isOpen, onClose, paymentType, amount, method, onSucces
 //  MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════
 
+// Friendly receipt labels for every payment purpose on the bidder account.
+const PURPOSE_LABELS = {
+  BIDDING_FEE: "Bidding Fee",
+  REGISTRATION_DEPOSIT: "Entry Fee",
+  SECURITY_DEPOSIT: "Entry Fee",
+  DAILY_SALE_PURCHASE: "Daily Sale Purchase",
+  PROPERTY_PURCHASE: "Property Purchase",
+  PROPERTY_LEASE: "Property Lease (1st month)",
+  AUCTIONEER_SUBSCRIPTION_STARTER: "Subscription — Starter",
+  AUCTIONEER_SUBSCRIPTION_PRO: "Subscription — Professional",
+  AUCTIONEER_SUBSCRIPTION_ENTERPRISE: "Subscription — Enterprise",
+};
+
+function purposeLabel(purpose) {
+  if (!purpose) return "Payment";
+  return PURPOSE_LABELS[purpose] || purpose.replaceAll("_", " ").toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export default function Payment() {
   const { data: session, status } = useSession();
   const [selectedMethod, setSelectedMethod] = useState("tnm");
@@ -443,8 +462,8 @@ export default function Payment() {
       <div className="bg-[var(--color-card)] p-6 rounded-2xl border border-[var(--color-border)] shadow-sm space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-[var(--color-text)]">Payments & Deposits</h2>
-            <p className="text-xs text-[var(--color-muted)]">Track bidding fees, security deposits, and PayChangu transactions</p>
+            <h2 className="text-lg font-bold text-[var(--color-text)]">Receipts</h2>
+            <p className="text-xs text-[var(--color-muted)]">Every payment you have made — properties, daily sales and auctions</p>
           </div>
           <Wallet className="w-5 h-5 text-[var(--color-primary)]" />
         </div>
@@ -457,8 +476,8 @@ export default function Payment() {
             onPay={() => handlePay("BIDDING_FEE", "MK 5,000")} isLoading={false}
           />
           <PaymentCard
-            title="Security Deposit" icon={Wallet} amount="MK 50,000"
-            description="Refundable after auction" status="Fully refundable"
+            title="Entry Fee" icon={Wallet} amount="MK 50,000"
+            description="Actual fee to participate in an auction" status="Required to join"
             statusColor="bg-emerald-500/10 text-emerald-400"
             onPay={() => handlePay("REGISTRATION_DEPOSIT", "MK 50,000")} isLoading={false}
           />
@@ -512,8 +531,8 @@ export default function Payment() {
                       <Smartphone className={`w-4 h-4 ${style.text}`} />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-[var(--color-text)]">{tx.purpose}</p>
-                      <p className="text-[10px] text-[var(--color-muted)]">{tx.method || "PayChangu"} • {formatDate(tx.createdAt)}</p>
+                      <p className="text-sm font-bold text-[var(--color-text)]">{purposeLabel(tx.purpose)}</p>
+                      <p className="text-[10px] text-[var(--color-muted)]">{tx.reference} • {formatDate(tx.createdAt)}</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -531,9 +550,9 @@ export default function Payment() {
       <div className="bg-[var(--color-card)] p-6 rounded-2xl border border-[var(--color-border)] shadow-sm space-y-5">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-[var(--color-text)]">Payment History</h2>
+            <h2 className="text-lg font-bold text-[var(--color-text)]">Auction Payment History</h2>
             <p className="text-xs text-[var(--color-muted)] mt-0.5">
-              All bidding fees and security deposits you have paid, with dates and references
+              All bidding fees and entry fees you have paid, with dates and references
             </p>
           </div>
           <button onClick={loadTransactions} disabled={txLoading} className="p-2 rounded-lg hover:bg-[var(--color-input)]">
@@ -544,9 +563,9 @@ export default function Payment() {
         {feePayments.length === 0 ? (
           <div className="p-8 text-center border border-dashed border-[var(--color-border)] rounded-xl">
             <Wallet className="w-8 h-8 text-[var(--color-muted)] mx-auto mb-2" />
-            <p className="text-sm text-[var(--color-muted)]">No bidding fees or security deposits paid yet</p>
+            <p className="text-sm text-[var(--color-muted)]">No bidding fees or entry fees paid yet</p>
             <p className="text-[10px] text-[var(--color-muted)] mt-1">
-              They are collected when you join an auction (bidding fee first, then security deposit)
+              They are collected when you join an auction (bidding fee first, then entry fee)
             </p>
           </div>
         ) : (
@@ -571,7 +590,7 @@ export default function Payment() {
                           ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                           : "bg-[var(--color-secondary)]/10 text-[var(--color-primary)] border-[var(--color-primary)]/20"
                       }`}>
-                        {p.feeType === "SECURITY_DEPOSIT" ? "Security Deposit" : "Bidding Fee"}
+                        {p.feeType === "SECURITY_DEPOSIT" ? "Entry Fee" : "Bidding Fee"}
                       </span>
                     </td>
                     <td className="px-3 py-3">

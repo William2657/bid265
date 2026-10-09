@@ -110,11 +110,20 @@ export async function GET(request) {
         asset.auctionItems[0] ||
         null;
 
-      const salePrice = asset.salePrice
-        ? Number(asset.salePrice)
-        : liveAuction
-        ? Number(liveAuction.reservePrice || liveAuction.startingBid)
-        : null;
+      const attrs = asset.attributes || {};
+      // Document: properties are either FOR SALE (asking price) or FOR LEASE
+      // (charges per month). Lease terms live in asset.attributes.
+      const listingType = attrs.listingType === "LEASE" ? "LEASE" : "SALE";
+      const monthlyRent = attrs.monthlyRent ? Number(attrs.monthlyRent) : null;
+
+      const salePrice =
+        listingType === "LEASE"
+          ? monthlyRent
+          : asset.salePrice
+          ? Number(asset.salePrice)
+          : liveAuction
+          ? Number(liveAuction.reservePrice || liveAuction.startingBid)
+          : null;
 
       return {
         id: asset.id,
@@ -124,13 +133,15 @@ export async function GET(request) {
         category: asset.category,
         location: asset.location,
         price: salePrice,
+        listingType,
+        monthlyRent,
         startingBid: liveAuction ? Number(liveAuction.startingBid) : null,
         currentBid: liveAuction?.bids?.[0] ? Number(liveAuction.bids[0].amount) : null,
         auctionStatus: liveAuction?.status || null,
         biddingFee: liveAuction ? Number(liveAuction.biddingFee) : 0,
         depositAmount: liveAuction ? Number(liveAuction.depositAmount) : 0,
         imageUrl: liveAuction?.images?.[0]?.url || null,
-        attributes: asset.attributes || {},
+        attributes: attrs,
         auctioneerName: asset.createdBy?.name || "Verified Auctioneer",
         auctioneerId: asset.createdBy?.id || null,
         createdAt: asset.createdAt.toISOString(),

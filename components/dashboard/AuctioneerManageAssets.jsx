@@ -247,7 +247,14 @@ export default function AuctioneerManageAssets() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <h4 className="text-xs font-bold text-[var(--color-text)] truncate">{item.title}</h4>
-                        <StatusChip status={item.status} />
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {item.listingType === "LEASE" && (
+                            <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-600 text-white">
+                              For Lease
+                            </span>
+                          )}
+                          <StatusChip status={item.status} />
+                        </div>
                       </div>
                       <div className="flex items-center gap-1 text-[10px] text-[var(--color-muted)] mt-1">
                         <MapPin className="w-2.5 h-2.5" /> {item.location}
@@ -255,7 +262,9 @@ export default function AuctioneerManageAssets() {
                       </div>
                       <div className="grid grid-cols-2 gap-2 mt-2 text-[10px]">
                         <div className="col-span-1">
-                          <p className="text-[var(--color-muted)] uppercase font-bold text-[8px]">Sale Price</p>
+                          <p className="text-[var(--color-muted)] uppercase font-bold text-[8px]">
+                            {item.listingType === "LEASE" ? "Rent / Month" : "Sale Price"}
+                          </p>
                           <p className="font-extrabold text-[var(--color-primary)] text-sm">{formatMoney(item.salePrice)}</p>
                         </div>
                         <div className="col-span-1 text-right">

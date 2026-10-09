@@ -66,11 +66,20 @@ export async function GET() {
       })),
       properties: propertyAssets.map((asset) => {
         const lot = asset.auctionItems?.[0] || null;
-        const salePrice = asset.salePrice
-          ? Number(asset.salePrice)
-          : lot
-          ? Number(lot.reservePrice)
-          : 0;
+        const attrs =
+          asset.attributes && typeof asset.attributes === "object" && !Array.isArray(asset.attributes)
+            ? asset.attributes
+            : {};
+        const listingType = attrs.listingType === "LEASE" ? "LEASE" : "SALE";
+        const monthlyRent = attrs.monthlyRent ? Number(attrs.monthlyRent) : null;
+        const salePrice =
+          listingType === "LEASE"
+            ? monthlyRent || 0
+            : asset.salePrice
+            ? Number(asset.salePrice)
+            : lot
+            ? Number(lot.reservePrice)
+            : 0;
         return {
           id: asset.id,
           assetId: asset.id,
@@ -79,6 +88,8 @@ export async function GET() {
           category: asset.category,
           location: asset.location,
           salePrice,
+          listingType,
+          monthlyRent,
           isSold: asset.isSold,
           status: asset.isSold
             ? "SOLD"

@@ -4,10 +4,9 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getActiveLiveAuctions, getLiveKitToken } from "@/app/actions/liveAuction";
 import { hasClearedAuctionGate } from "@/app/actions/auctionAccess";
-import AuctionAccessGate from "@/components/dashboard/AuctionAccessGate";
-import { 
+import AuctionAccessGate from "@/components/dashboard/AuctionAccessGate";import { 
   Tv, 
-  Search, 
+  Search,
   MapPin, 
   Loader2, 
   ArrowUpRight,
@@ -24,7 +23,6 @@ export default function BidderLiveConsole({ auctionItems = [] }) {
   const router = useRouter();
   const [activeAuctions, setActiveAuctions] = useState([]);
   const [isJoiningId, setIsJoiningId] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("ALL");
   const [loading, setLoading] = useState(true);
   const [gateAuction, setGateAuction] = useState(null); // auction pending fee clearance
@@ -85,7 +83,7 @@ export default function BidderLiveConsole({ auctionItems = [] }) {
       // Fees confirmed — only connect to the room once the auction is live.
       if (!(auction.status === "ACTIVE" || auction.status === "LIVE" || auction.roomId)) {
         setIsJoiningId(null);
-        alert("✅ Bidding fee and security deposit confirmed. This auction has not gone live yet — come back to this tab once the auctioneer starts it.");
+        alert("✅ Bidding fee and entry fee confirmed. This auction has not gone live yet — come back to this tab once the auctioneer starts it.");
         return;
       }
 
@@ -113,7 +111,7 @@ export default function BidderLiveConsole({ auctionItems = [] }) {
 
     if (!gateAuction.isLive) {
       setGateAuction(null);
-      alert("✅ Bidding fee and security deposit confirmed. This auction has not gone live yet — come back to this tab once the auctioneer starts it.");
+      alert("✅ Bidding fee and entry fee confirmed. This auction has not gone live yet — come back to this tab once the auctioneer starts it.");
       return;
     }
 
@@ -129,27 +127,20 @@ export default function BidderLiveConsole({ auctionItems = [] }) {
       console.error("Post-payment join error:", err);
       alert("Payments confirmed, but the room connection failed. Please tap Join Live again.");
     }
-  };
-
-  // Handle placing a bid (redirects to auction detail)
+  };  // Handle placing a bid — bidding always runs through the payment gate first
+  // (bidding fee → entry fee via the PayChangu payment APIs), then enters the room.
   const handlePlaceBid = (auction) => {
-    router.push(`/auctions/${auction.id || auction.auctionItemId}`);
+    handleJoinAuction(auction);
   };
 
-  // Filter auctions
+  // Filter auctions — the document removes the search bar: every listed
+  // auction is shown in the window, with only the category filter kept.
   const filteredAuctions = activeAuctions.filter(item => {
-    const matchesSearch = (
-      item.itemTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.asset?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.location?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
     const matchesCategory = filterCategory === "ALL" || 
-      item.category?.toUpperCase() === filterCategory ||
+      item.category?.toUpperCase() === filterCategory || 
       item.asset?.category?.toUpperCase() === filterCategory;
 
-    return matchesSearch && matchesCategory;
+    return matchesCategory;
   });
 
   // Get unique categories
@@ -200,8 +191,8 @@ export default function BidderLiveConsole({ auctionItems = [] }) {
               <Tv className="w-5 h-5" /> Auctions
             </h2>
             <p className="text-[11px] sm:text-xs text-[var(--color-bg)]/70 max-w-xl leading-relaxed">
-              Goods and assets consigned to auctioneers for auction. Pay the bidding fee and the
-              security deposit to join an auction and place your bids live.
+              Goods and assets consigned to auctioneers for auction.              Pay the bidding fee and the
+              entry fee to join an auction and place your bids live.
             </p>
           </div>
           <div className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl px-5 py-3 shrink-0 flex items-center gap-4 self-start sm:self-center">
@@ -220,28 +211,9 @@ export default function BidderLiveConsole({ auctionItems = [] }) {
         </div>
       </div>
 
-      {/* Search & Filter Bar */}
+      {/* Category Filter — no search bar: every listed auction shows in the window */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-muted)]" />
-          <input 
-            type="text"
-            placeholder="Search auctions by title, location..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[var(--color-text)] placeholder-[var(--color-muted)] focus:outline-none focus:border-[var(--color-primary)]/40 focus:ring-1 focus:ring-[var(--color-primary)]/20 transition-all"
-          />
-          {searchQuery && (
-            <button 
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)] hover:text-[var(--color-text)]"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 flex-1">
           <Filter className="w-4 h-4 text-[var(--color-muted)] shrink-0" />
           {categories.map(cat => (
             <button
@@ -270,7 +242,7 @@ export default function BidderLiveConsole({ auctionItems = [] }) {
           </div>
           <div className="flex items-center gap-1 text-[10px] text-[var(--color-muted)]">
             <TrendingUp className="w-3 h-3" />
-            <span>Join requires bidding fee + security deposit</span>
+            <span>Join requires bidding fee + entry fee</span>
           </div>
         </div>
 
@@ -290,7 +262,7 @@ export default function BidderLiveConsole({ auctionItems = [] }) {
             <p className="text-sm text-[var(--color-muted)] font-medium">
               {activeAuctions.length === 0 
                 ? "No auctions listed right now. Check back soon!" 
-                : "No auctions match your search criteria."}
+                : "No auctions match the selected category."}
             </p>
             {activeAuctions.length === 0 && (
               <button 

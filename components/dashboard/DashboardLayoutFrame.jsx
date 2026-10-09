@@ -32,6 +32,7 @@ import BidderMarketplace from "@/components/dashboard/BidderMarketplace";
 import Mybids from "./Mybids"
 import Payment from "./Payment";
 import AuctioneerPayment from "./AuctioneerPayment";
+import AuctioneerReport from "./AuctioneerReport";
 
 export default function DashboardLayoutFrame({ user, serializedAuctionItems, isAuctioneer, forceTab = null, addListingInitialMode = "property" }) {
   const searchParams = useSearchParams();
@@ -77,14 +78,16 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
   const getTabLabel = (tab) => {
     const labels = {
       "dashboard": "Dashboard",
-      "live-auctions": "Auctions",
+      // Document: the auctioneer's live auction control tab is "Manage Auctions"
+      "live-auctions": isAuctioneer ? "Manage Auctions" : "Auctions",
       "daily-sales": "Daily Sales",
       "properties": "Properties",
       "my-bids": "My Bids",
       "manage-listings": "Manage Listings",
       "add-listing": "Add Listing",
-      "payments": "Payments & Deposits",
-      "reports": "Reports",
+      // Document: the bidder's pay tab is now "Receipts"
+      "payments": isAuctioneer ? "Payments & Deposits" : "Receipts",
+      "reports": "Sales Reports",
       "settings": "Settings"
     };
     return labels[tab] || tab;
@@ -92,13 +95,13 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
 
   const navItems = [
     { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", show: true },
-    { id: "live-auctions", icon: Tv, label: "Auctions", show: true, badge: liveCount },
+    { id: "live-auctions", icon: Tv, label: isAuctioneer ? "Manage Auctions" : "Auctions", show: true, badge: liveCount },
     { id: "daily-sales", icon: ShoppingBag, label: "Daily Sales", show: !isAuctioneer },
     { id: "properties", icon: Home, label: "Properties", show: !isAuctioneer },
     { id: "my-bids", icon: Gavel, label: "My Bids", show: !isAuctioneer },
     { id: "manage-listings", icon: FolderGit, label: "Manage Listings", show: isAuctioneer },
-    { id: "payments", icon: Wallet, label: "Payments & Deposits", show: true },
-    { id: "reports", icon: BarChart3, label: "Reports", show: isAuctioneer },
+    { id: "payments", icon: Wallet, label: isAuctioneer ? "Payments & Deposits" : "Receipts", show: true },
+    { id: "reports", icon: BarChart3, label: "Sales Reports", show: isAuctioneer },
     { id: "settings", icon: Settings, label: "Settings", show: true },
   ];
 
@@ -367,9 +370,14 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
               <AuctioneerAddListing initialMode={addListingInitialMode} />
             )}
 
-            {/* Payments & Deposits */}
+            {/* Payments & Deposits (Auctioneer) / Receipts (Bidder) */}
             {activeTab === "payments" && (
               isAuctioneer ? <AuctioneerPayment /> : <Payment />
+            )}
+
+            {/* Sales Reports (Auctioneer only) */}
+            {activeTab === "reports" && isAuctioneer && (
+              <AuctioneerReport />
             )}
 
             {/* Settings */}
