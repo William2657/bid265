@@ -37,7 +37,7 @@ export default function AuctioneerAddListing({ initialMode = "property" }) {
 
   const [form, setForm] = useState({
     title: "", description: "", location: "", documentUrl: "",
-    salePrice: "",
+    salePrice: "", listingType: "SALE", leasePrice: "",
     biddingFee: "", price: "", stockCount: "1",
   });
 
@@ -82,10 +82,15 @@ export default function AuctioneerAddListing({ initialMode = "property" }) {
         if (!res.success) throw new Error(res.error);
         alert("🎉 Daily sale listing published!");
       } else {
-        formData.append("salePrice", form.salePrice);
+        formData.append("listingType", form.listingType === "LEASE" ? "LEASE" : "SALE");
+        if (form.listingType === "LEASE") {
+          formData.append("leasePrice", form.leasePrice);
+        } else {
+          formData.append("salePrice", form.salePrice);
+        }
         const res = await createPropertyListing(formData);
         if (!res.success) throw new Error(res.error || "Failed to publish the property listing.");
-        alert("🎉 Property listed for sale!");
+        alert(form.listingType === "LEASE" ? "🏠 Property listed for lease!" : "🎉 Property listed for sale!");
       }
 
       router.push("/dashboard?tab=manage-listings");
@@ -168,10 +173,13 @@ export default function AuctioneerAddListing({ initialMode = "property" }) {
               <input type="file" accept="image/*" onChange={(e) => setUploadedFile(e.target.files?.[0] || null)} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
             </div>
           </div>
-          <div>
-            <label className="block text-[10px] font-bold text-[var(--color-muted)] uppercase mb-1">Legal Document Link</label>
-            <input type="url" placeholder="https://your-host-cdn.com/file.pdf" value={form.documentUrl} onChange={(e) => setForm({...form, documentUrl: e.target.value})} className={inputClass} />
-          </div>
+          {/* Document: daily sale listings no longer collect a legal document link */}
+          {mode !== "daily-sale" && (
+            <div>
+              <label className="block text-[10px] font-bold text-[var(--color-muted)] uppercase mb-1">Legal Document Link</label>
+              <input type="url" placeholder="https://your-host-cdn.com/file.pdf" value={form.documentUrl} onChange={(e) => setForm({...form, documentUrl: e.target.value})} className={inputClass} />
+            </div>
+          )}
         </div>
 
         {/* Category */}
@@ -219,25 +227,67 @@ export default function AuctioneerAddListing({ initialMode = "property" }) {
                 <input type="number" min="1" placeholder="1" value={form.stockCount} onChange={(e) => setForm({...form, stockCount: e.target.value})} className={inputClass} />
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="bg-[var(--color-secondary)]/5 p-4 border border-[var(--color-primary)]/10 rounded-xl">
-            <div className="flex items-center gap-1.5 border-b border-[var(--color-primary)]/10 pb-2 mb-3">
+          </div>        ) : (
+          <div className="bg-[var(--color-secondary)]/5 p-4 border border-[var(--color-primary)]/10 rounded-xl space-y-4">
+            <div className="flex items-center gap-1.5 border-b border-[var(--color-primary)]/10 pb-2">
               <DollarSign className="w-3.5 h-3.5 text-[var(--color-primary)]" />
-              <span className="text-[10px] font-bold text-[var(--color-text)] uppercase tracking-wider">Property Sale Price</span>
+              <span className="text-[10px] font-bold text-[var(--color-text)] uppercase tracking-wider">Listing Type & Pricing</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[10px] font-bold text-[var(--color-muted)] uppercase mb-1">Sale Price (MWK)</label>
-                <input type="number" required placeholder="45000000" value={form.salePrice} onChange={(e) => setForm({...form, salePrice: e.target.value})} className={inputClass} />
-              </div>
-              <div className="flex items-end">
-                <p className="text-[11px] text-[var(--color-muted)] leading-relaxed">
-                  Properties are listed <span className="font-bold text-[var(--color-text)]">for sale</span>, not for
-                  auction. Bidders purchase directly from the Properties tab and receive a receipt by email.
-                </p>
+
+            <div>
+              <label className="block text-[10px] font-bold text-[var(--color-muted)] uppercase mb-1.5">Property Listing Type</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, listingType: "SALE" })}
+                  className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition-all ${
+                    form.listingType !== "LEASE"
+                      ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-md"
+                      : "bg-[var(--color-input)] text-[var(--color-muted)] border-[var(--color-border)] hover:border-[var(--color-primary)]/40"
+                  }`}
+                >
+                  💰 For Sale
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, listingType: "LEASE" })}
+                  className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition-all ${
+                    form.listingType === "LEASE"
+                      ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-md"
+                      : "bg-[var(--color-input)] text-[var(--color-muted)] border-[var(--color-border)] hover:border-[var(--color-primary)]/40"
+                  }`}
+                >
+                  🏠 For Lease
+                </button>
               </div>
             </div>
+
+            {form.listingType === "LEASE" ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-[var(--color-muted)] uppercase mb-1">Rent Per Month (MWK)</label>
+                  <input type="number" required placeholder="850000" value={form.leasePrice} onChange={(e) => setForm({ ...form, leasePrice: e.target.value })} className={inputClass} />
+                </div>
+                <div className="flex items-end">
+                  <p className="text-[11px] text-[var(--color-muted)] leading-relaxed">
+                    Leased properties display as <span className="font-bold text-[var(--color-text)]">For Lease</span>{" "}
+                    with the monthly charge, and tenants receive automatic reminders when rent is due the following month.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-[var(--color-muted)] uppercase mb-1">Sale Price (MWK)</label>
+                  <input type="number" required placeholder="45000000" value={form.salePrice} onChange={(e) => setForm({ ...form, salePrice: e.target.value })} className={inputClass} />
+                </div>
+                <div className="flex items-end">
+                  <p className="text-[11px] text-[var(--color-muted)] leading-relaxed">
+                    Properties for sale are purchased directly from the Properties tab and the buyer receives a receipt by email.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

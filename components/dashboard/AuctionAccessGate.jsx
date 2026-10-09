@@ -287,8 +287,9 @@ export default function AuctionAccessGate({ open, onClose, auctionItemId, onAcce
               <div className="flex items-start gap-2 p-3 bg-[var(--color-secondary)]/5 border border-[var(--color-primary)]/15 rounded-xl">
                 <ShieldCheck className="w-4 h-4 text-[var(--color-primary)] mt-0.5 shrink-0" />
                 <p className="text-[11px] text-[var(--color-muted)] leading-relaxed">
-                  To enter this auction room you must first pay the <span className="font-bold text-[var(--color-text)]">bidding fee</span>, then a{" "}
-                  <span className="font-bold text-[var(--color-text)]">security deposit</span> which guarantees you will honour your bid. Both payments
+                  To enter this auction room you must first pay the <span className="font-bold text-[var(--color-text)]">bidding fee</span> — the
+                  money you will bid with — then the <span className="font-bold text-[var(--color-text)]">entry fee</span>, the actual fee
+                  required to participate, which also guarantees you will honour your bid. Both payments
                   are confirmed before the room opens for you.
                 </p>
               </div>
@@ -303,7 +304,7 @@ export default function AuctionAccessGate({ open, onClose, auctionItemId, onAcce
               />
 
               <FeeStepRow
-                label="Security Deposit"
+                label="Entry Fee"
                 amount={status?.depositAmount ?? 0}
                 done={depositDone}
                 active={nextStep === "SECURITY_DEPOSIT"}

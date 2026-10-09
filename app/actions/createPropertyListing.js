@@ -27,12 +27,18 @@ export async function createPropertyListing(formData) {
     const location = formData.get("location");
     const category = formData.get("category");
     const documentUrl = formData.get("documentUrl");
+    const listingType = formData.get("listingType") === "LEASE" ? "LEASE" : "SALE";
     const salePrice = parseFloat(formData.get("salePrice"));
+    const leasePrice = parseFloat(formData.get("leasePrice"));
 
     if (!title || !description || !location) {
       return { success: false, error: "Title, description and location are required." };
     }
-    if (isNaN(salePrice) || salePrice <= 0) {
+    if (listingType === "LEASE") {
+      if (isNaN(leasePrice) || leasePrice <= 0) {
+        return { success: false, error: "Please provide a valid monthly rent for the lease." };
+      }
+    } else if (isNaN(salePrice) || salePrice <= 0) {
       return { success: false, error: "Please provide a valid sale price for the property." };
     }
 
@@ -63,6 +69,18 @@ export async function createPropertyListing(formData) {
     await fs.writeFile(path.join(uploadDir, uniqueFileName), Buffer.from(await file.arrayBuffer()));
     const imageUrl = `/uploads/${uniqueFileName}`;
 
+    // Document: properties are either listed FOR SALE (asking price) or
+    // FOR LEASE (monthly rent). Lease terms travel in attributes.
+    const isLease = listingType === "LEASE";
+    if (isLease) {
+      formattedAttributes.listingType = "LEASE";
+      formattedAttributes.monthlyRent = leasePrice;
+      delete formattedAttributes.salePrice;
+    } else {
+      formattedAttributes.listingType = "SALE";
+    }
+    const priceForShell = isLease ? leasePrice : salePrice;
+
     const result = await prisma.$transaction(async (tx) => {
       const asset = await tx.asset.create({
         data: {
@@ -71,7 +89,7 @@ export async function createPropertyListing(formData) {
           location,
           category: category || "REAL_ESTATE",
           salesType: "PROPERTY",
-          salePrice,
+          salePrice: isLease ? null : salePrice,
           attributes: formattedAttributes,
           documentUrl: documentUrl || null,
           createdById: Number(session.user.id),
@@ -84,8 +102,8 @@ export async function createPropertyListing(formData) {
       const shell = await tx.auctionItem.create({
         data: {
           assetId: asset.id,
-          startingBid: salePrice,
-          reservePrice: salePrice,
+          startingBid: priceForShell,
+          reservePrice: priceForShell,
           depositAmount: 0,
           biddingFee: 0,
           endTime: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),

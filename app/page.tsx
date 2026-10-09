@@ -20,26 +20,26 @@ import Link from "next/link";
 
 const LogoIcon = () => (
   <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-    <circle cx="16" cy="16" r="14" stroke="#A5EC60" strokeWidth="2.5"/>
-    <path d="M10 16L14 20L22 12" stroke="#A5EC60" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <circle cx="16" cy="16" r="14" stroke="#6E95FF" strokeWidth="2.5"/>
+    <path d="M10 16L14 20L22 12" stroke="#6E95FF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
 const PlayIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <circle cx="7" cy="7" r="6.5" stroke="#A5EC60" strokeWidth="1.2"/>
-    <path d="M6 5L9 7L6 9V5Z" fill="#A5EC60"/>
+    <circle cx="7" cy="7" r="6.5" stroke="#6E95FF" strokeWidth="1.2"/>
+    <path d="M6 5L9 7L6 9V5Z" fill="#6E95FF"/>
   </svg>
 );
 
 const AuctionIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#A5EC60" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6E95FF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
   </svg>
 );
 
 const BidIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#A5EC60" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6E95FF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M6 9l6 6 6-6"/>
     <path d="M12 3v12"/>
     <rect x="3" y="15" width="18" height="6" rx="2"/>
@@ -47,7 +47,7 @@ const BidIcon = () => (
 );
 
 const ShieldIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#A5EC60" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6E95FF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
     <path d="m9 12 2 2 4-4"/>
   </svg>
@@ -75,8 +75,8 @@ const MapPinIcon = () => (
 
 const SearchInputIcon = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-    <circle cx="9" cy="9" r="7" stroke="#487070" strokeWidth="1.5"/>
-    <path d="M15 15L18 18" stroke="#487070" strokeWidth="1.5" strokeLinecap="round"/>
+    <circle cx="9" cy="9" r="7" stroke="#8B9AC9" strokeWidth="1.5"/>
+    <path d="M15 15L18 18" stroke="#8B9AC9" strokeWidth="1.5" strokeLinecap="round"/>
   </svg>
 );
 
@@ -145,7 +145,7 @@ function Navbar() {
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-      scrolled ? "bg-[#0B1E26]/95 backdrop-blur-xl border-b border-[#18333D]/50" : "bg-transparent"
+      scrolled ? "bg-[#0A1430]/95 backdrop-blur-xl border-b border-[#16294F]/50" : "bg-transparent"
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
@@ -157,19 +157,19 @@ function Navbar() {
         <div className="hidden md:flex items-center gap-8">
           {links.map((link) => (
             <a key={link} href={`#${link.toLowerCase().replace(/\s/g, "-")}`}
-              className="text-sm font-medium text-[#487070] hover:text-[#A5EC60] transition-colors duration-300 relative group">
+              className="text-sm font-medium text-[#8B9AC9] hover:text-[#6E95FF] transition-colors duration-300 relative group">
               {link}
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#A5EC60] transition-all duration-300 group-hover:w-full" />
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#6E95FF] transition-all duration-300 group-hover:w-full" />
             </a>
           ))}
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <Link href="/login" className="text-[#487070] hover:text-[#A5EC60] px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 border border-[#18333D] hover:border-[#A5EC60]/30 flex items-center gap-2">
+          <Link href="/login" className="text-[#8B9AC9] hover:text-[#6E95FF] px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 border border-[#16294F] hover:border-[#6E95FF]/30 flex items-center gap-2">
             <UserIcon />
             Login
           </Link>
-          <Link href="/signup" className="bg-[#419310] hover:bg-[#A5EC60] text-white hover:text-[#0B1E26] px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 hover:shadow-lg hover:shadow-[#A5EC60]/20 hover:-translate-y-0.5 active:translate-y-0">
+          <Link href="/signup" className="bg-[#2C5DF2] hover:bg-[#6E95FF] text-white hover:text-[#0A1430] px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 hover:shadow-lg hover:shadow-[#6E95FF]/20 hover:-translate-y-0.5 active:translate-y-0">
             Register
           </Link>
         </div>
@@ -182,20 +182,20 @@ function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-[#0B1E26]/98 backdrop-blur-xl border-t border-[#18333D]/50 px-4 py-6 space-y-4">
+        <div className="md:hidden bg-[#0A1430]/98 backdrop-blur-xl border-t border-[#16294F]/50 px-4 py-6 space-y-4">
           {links.map((link) => (
             <a key={link} href={`#${link.toLowerCase().replace(/\s/g, "-")}`}
-              className="block text-[#487070] hover:text-[#A5EC60] text-base font-medium py-2 transition-colors"
+              className="block text-[#8B9AC9] hover:text-[#6E95FF] text-base font-medium py-2 transition-colors"
               onClick={() => setMenuOpen(false)}>
               {link}
             </a>
           ))}
-          <div className="flex flex-col gap-3 pt-4 border-t border-[#18333D]/50">
-            <Link href="/login" className="text-center text-[#487070] hover:text-[#A5EC60] px-5 py-3 rounded-full text-sm font-semibold transition-all border border-[#18333D] hover:border-[#A5EC60]/30 flex items-center justify-center gap-2">
+          <div className="flex flex-col gap-3 pt-4 border-t border-[#16294F]/50">
+            <Link href="/login" className="text-center text-[#8B9AC9] hover:text-[#6E95FF] px-5 py-3 rounded-full text-sm font-semibold transition-all border border-[#16294F] hover:border-[#6E95FF]/30 flex items-center justify-center gap-2">
               <UserIcon />
               Login
             </Link>
-            <Link href="/signup" className="text-center bg-[#419310] hover:bg-[#A5EC60] text-white hover:text-[#0B1E26] px-5 py-3 rounded-full text-sm font-bold transition-all">
+            <Link href="/signup" className="text-center bg-[#2C5DF2] hover:bg-[#6E95FF] text-white hover:text-[#0A1430] px-5 py-3 rounded-full text-sm font-bold transition-all">
               Register
             </Link>
           </div>
@@ -240,40 +240,40 @@ function Hero() {
             alt=""
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-[#0B1E26]/75" />
+          <div className="absolute inset-0 bg-[#0A1430]/75" />
         </div>
       ))}
 
       {/* Ambient glows */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#A5EC60]/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-[#419310]/5 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#6E95FF]/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-[#2C5DF2]/5 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Content - perfectly centered */}
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 text-center pt-20 pb-12">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#18333D]/80 border border-[#487070]/20 mb-8">
-          <span className="w-2 h-2 rounded-full bg-[#A5EC60] animate-pulse" />
-          <span className="text-xs sm:text-sm font-medium text-[#A5EC60]">Malawi&apos;s First Online Auction Platform</span>
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#16294F]/80 border border-[#8B9AC9]/20 mb-8">
+          <span className="w-2 h-2 rounded-full bg-[#6E95FF] animate-pulse" />
+          <span className="text-xs sm:text-sm font-medium text-[#6E95FF]">Malawi&apos;s First Online Auction Platform</span>
         </div>
 
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.1] tracking-tight mb-6">
           <span className="block">Your Auction</span>
           <span className="block">Journey Starts</span>
-          <span className="block bg-gradient-to-r from-[#A5EC60] to-[#419310] bg-clip-text text-transparent">
+          <span className="block bg-gradient-to-r from-[#6E95FF] to-[#2C5DF2] bg-clip-text text-transparent">
             Here.
           </span>
         </h1>
 
-        <p className="text-base sm:text-lg text-[#487070] max-w-lg mx-auto leading-relaxed mb-10 px-4">
+        <p className="text-base sm:text-lg text-[#8B9AC9] max-w-lg mx-auto leading-relaxed mb-10 px-4">
           Discover premium real estate and vehicle auctions across Malawi. 
           Register remotely, pay securely, and bid from anywhere.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-          <Link href="/signup" className="bg-[#A5EC60] hover:bg-[#419310] text-[#0B1E26] hover:text-white px-8 py-4 rounded-full text-base font-bold transition-all duration-300 hover:shadow-xl hover:shadow-[#A5EC60]/20 hover:-translate-y-1 active:translate-y-0 w-full sm:w-auto text-center">
+          <Link href="/signup" className="bg-[#6E95FF] hover:bg-[#2C5DF2] text-[#0A1430] hover:text-white px-8 py-4 rounded-full text-base font-bold transition-all duration-300 hover:shadow-xl hover:shadow-[#6E95FF]/20 hover:-translate-y-1 active:translate-y-0 w-full sm:w-auto text-center">
             Start Bidding
           </Link>
-          <button className="flex items-center justify-center gap-2.5 text-[#487070] hover:text-[#A5EC60] transition-colors duration-300 group px-4 py-4">
-            <span className="w-10 h-10 rounded-full border-2 border-[#487070]/30 flex items-center justify-center group-hover:border-[#A5EC60] transition-all duration-300 group-hover:scale-110">
+          <button className="flex items-center justify-center gap-2.5 text-[#8B9AC9] hover:text-[#6E95FF] transition-colors duration-300 group px-4 py-4">
+            <span className="w-10 h-10 rounded-full border-2 border-[#8B9AC9]/30 flex items-center justify-center group-hover:border-[#6E95FF] transition-all duration-300 group-hover:scale-110">
               <PlayIcon />
             </span>
             <span className="text-sm font-medium">How it works</span>
@@ -285,19 +285,19 @@ function Hero() {
           <div className="flex items-center gap-2">
             <div className="flex -space-x-2">
               {["A","B","C"].map(l => (
-                <div key={l} className="w-8 h-8 rounded-full bg-gradient-to-br from-[#A5EC60] to-[#419310] border-2 border-[#0B1E26] flex items-center justify-center text-[#0B1E26] text-xs font-bold">
+                <div key={l} className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6E95FF] to-[#2C5DF2] border-2 border-[#0A1430] flex items-center justify-center text-[#0A1430] text-xs font-bold">
                   {l}
                 </div>
               ))}
             </div>
-            <span className="text-xs text-[#487070]">1,240+ bidders</span>
+            <span className="text-xs text-[#8B9AC9]">1,240+ bidders</span>
           </div>
-          <div className="hidden sm:block h-6 w-px bg-[#18333D]" />
+          <div className="hidden sm:block h-6 w-px bg-[#16294F]" />
           <div className="flex items-center gap-1.5">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M8 1l2 4h4l-3 3 1 4-4-2.5L4 12l1-4-3-3h4l2-4z" fill="#A5EC60"/>
+              <path d="M8 1l2 4h4l-3 3 1 4-4-2.5L4 12l1-4-3-3h4l2-4z" fill="#6E95FF"/>
             </svg>
-            <span className="text-xs text-[#487070]">4.9 rating</span>
+            <span className="text-xs text-[#8B9AC9]">4.9 rating</span>
           </div>
         </div>
 
@@ -308,7 +308,7 @@ function Hero() {
               key={i}
               onClick={() => setCurrentBg(i)}
               className={`h-1.5 rounded-full transition-all duration-500 ${
-                currentBg === i ? "w-8 bg-[#A5EC60]" : "w-1.5 bg-[#487070]/50 hover:bg-[#487070]"
+                currentBg === i ? "w-8 bg-[#6E95FF]" : "w-1.5 bg-[#8B9AC9]/50 hover:bg-[#8B9AC9]"
               }`}
             />
           ))}
@@ -326,26 +326,26 @@ function SearchBar() {
   const { ref, inView } = useInView();
 
   return (
-    <section ref={ref} className="py-16 sm:py-20 bg-[#0B1E26]">
+    <section ref={ref} className="py-16 sm:py-20 bg-[#0A1430]">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
         <h2 className={`text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-          Find your perfect <span className="text-[#A5EC60]">property</span>
+          Find your perfect <span className="text-[#6E95FF]">property</span>
         </h2>
-        <p className={`text-[#487070] text-sm sm:text-base mb-8 sm:mb-10 transition-all duration-700 delay-100 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+        <p className={`text-[#8B9AC9] text-sm sm:text-base mb-8 sm:mb-10 transition-all duration-700 delay-100 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
           Browse verified real estate and vehicle listings from trusted auctioneers
         </p>
 
         <div className={`transition-all duration-700 delay-200 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-          <div className="flex flex-col sm:flex-row items-center bg-[#18333D]/60 rounded-2xl sm:rounded-full p-2 border border-[#487070]/20 focus-within:border-[#A5EC60]/40 focus-within:ring-2 focus-within:ring-[#A5EC60]/10 transition-all duration-300 hover:shadow-lg hover:shadow-[#A5EC60]/5 gap-2 sm:gap-0">
+          <div className="flex flex-col sm:flex-row items-center bg-[#16294F]/60 rounded-2xl sm:rounded-full p-2 border border-[#8B9AC9]/20 focus-within:border-[#6E95FF]/40 focus-within:ring-2 focus-within:ring-[#6E95FF]/10 transition-all duration-300 hover:shadow-lg hover:shadow-[#6E95FF]/5 gap-2 sm:gap-0">
             <div className="pl-4 pr-3 hidden sm:block">
               <SearchInputIcon />
             </div>
             <input
               type="text"
               placeholder="Search by location, property type, or auctioneer..."
-              className="flex-1 bg-transparent py-3 sm:py-4 px-4 sm:px-2 text-white placeholder-[#487070] outline-none text-sm w-full"
+              className="flex-1 bg-transparent py-3 sm:py-4 px-4 sm:px-2 text-white placeholder-[#8B9AC9] outline-none text-sm w-full"
             />
-            <button className="bg-[#419310] hover:bg-[#A5EC60] text-white hover:text-[#0B1E26] px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl sm:rounded-full text-sm font-bold transition-all duration-300 hover:shadow-lg hover:shadow-[#A5EC60]/20 hover:-translate-y-0.5 active:translate-y-0 w-full sm:w-auto">
+            <button className="bg-[#2C5DF2] hover:bg-[#6E95FF] text-white hover:text-[#0A1430] px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl sm:rounded-full text-sm font-bold transition-all duration-300 hover:shadow-lg hover:shadow-[#6E95FF]/20 hover:-translate-y-0.5 active:translate-y-0 w-full sm:w-auto">
               Search
             </button>
           </div>
@@ -381,13 +381,13 @@ function Features() {
   ];
 
   return (
-    <section ref={ref} className="py-16 sm:py-24 bg-[#0B1E26]">
+    <section ref={ref} className="py-16 sm:py-24 bg-[#0A1430]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-12 sm:mb-16">
           <h2 className={`text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4 transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-            Why Choose <span className="text-[#A5EC60]">TrustBid?</span>
+            Why Choose <span className="text-[#6E95FF]">TrustBid?</span>
           </h2>
-          <p className={`text-[#487070] text-sm sm:text-base max-w-lg mx-auto transition-all duration-700 delay-100 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+          <p className={`text-[#8B9AC9] text-sm sm:text-base max-w-lg mx-auto transition-all duration-700 delay-100 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
             The first web-based auctioning platform designed specifically for auctioneer agencies in Malawi
           </p>
         </div>
@@ -395,13 +395,13 @@ function Features() {
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
           {features.map((f, i) => (
             <div key={f.title}
-              className={`group p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#18333D]/40 border border-[#487070]/10 hover:border-[#A5EC60]/30 transition-all duration-500 hover:shadow-xl hover:shadow-[#A5EC60]/5 hover:-translate-y-2 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"}`}
+              className={`group p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#16294F]/40 border border-[#8B9AC9]/10 hover:border-[#6E95FF]/30 transition-all duration-500 hover:shadow-xl hover:shadow-[#6E95FF]/5 hover:-translate-y-2 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"}`}
               style={{ transitionDelay: `${200 + i * 150}ms` }}>
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-[#0B1E26] border border-[#487070]/20 flex items-center justify-center mb-5 sm:mb-6 group-hover:scale-110 group-hover:border-[#A5EC60]/40 transition-all duration-300 shadow-lg">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-[#0A1430] border border-[#8B9AC9]/20 flex items-center justify-center mb-5 sm:mb-6 group-hover:scale-110 group-hover:border-[#6E95FF]/40 transition-all duration-300 shadow-lg">
                 {f.icon}
               </div>
-              <h3 className="text-lg sm:text-xl font-bold text-white mb-3 group-hover:text-[#A5EC60] transition-colors duration-300">{f.title}</h3>
-              <p className="text-[#487070] text-sm leading-relaxed">{f.desc}</p>
+              <h3 className="text-lg sm:text-xl font-bold text-white mb-3 group-hover:text-[#6E95FF] transition-colors duration-300">{f.title}</h3>
+              <p className="text-[#8B9AC9] text-sm leading-relaxed">{f.desc}</p>
             </div>
           ))}
         </div>
@@ -421,35 +421,35 @@ function PropertyCard({
   bids: number; timeLeft: string; delay: number; inView: boolean;
 }) {
   return (
-    <div className={`group rounded-2xl sm:rounded-3xl overflow-hidden bg-[#18333D]/40 border border-[#487070]/10 hover:border-[#A5EC60]/20 transition-all duration-700 hover:shadow-2xl hover:shadow-[#A5EC60]/5 hover:-translate-y-3 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-16"}`}
+    <div className={`group rounded-2xl sm:rounded-3xl overflow-hidden bg-[#16294F]/40 border border-[#8B9AC9]/10 hover:border-[#6E95FF]/20 transition-all duration-700 hover:shadow-2xl hover:shadow-[#6E95FF]/5 hover:-translate-y-3 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-16"}`}
       style={{ transitionDelay: `${delay}ms` }}>
       <div className="relative overflow-hidden">
         <img src={image} alt={title} className="w-full h-48 sm:h-56 object-cover transition-transform duration-700 group-hover:scale-110" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0B1E26]/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0A1430]/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         <div className="absolute top-3 sm:top-4 left-3 sm:left-4">
-          <span className="bg-[#A5EC60] text-[#0B1E26] text-[10px] sm:text-xs font-bold px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full">
+          <span className="bg-[#6E95FF] text-[#0A1430] text-[10px] sm:text-xs font-bold px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full">
             Live Auction
           </span>
         </div>
         <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-2 group-hover:translate-y-0">
-          <button className="bg-white text-[#0B1E26] px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold hover:bg-[#A5EC60] transition-colors duration-300 flex items-center gap-2">
+          <button className="bg-white text-[#0A1430] px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold hover:bg-[#6E95FF] transition-colors duration-300 flex items-center gap-2">
             View <ArrowRightIcon />
           </button>
         </div>
       </div>
 
       <div className="p-4 sm:p-6">
-        <div className="flex items-center gap-1 text-[#487070] text-xs mb-2">
+        <div className="flex items-center gap-1 text-[#8B9AC9] text-xs mb-2">
           <MapPinIcon /> {location}
         </div>
-        <h3 className="text-base sm:text-lg font-bold text-white mb-2 group-hover:text-[#A5EC60] transition-colors duration-300">{title}</h3>
+        <h3 className="text-base sm:text-lg font-bold text-white mb-2 group-hover:text-[#6E95FF] transition-colors duration-300">{title}</h3>
         <div className="flex items-end justify-between mt-3 sm:mt-4">
           <div>
-            <p className="text-xs text-[#487070] mb-0.5">Current Bid</p>
-            <p className="text-lg sm:text-xl font-bold text-[#A5EC60]">{price}</p>
+            <p className="text-xs text-[#8B9AC9] mb-0.5">Current Bid</p>
+            <p className="text-lg sm:text-xl font-bold text-[#6E95FF]">{price}</p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-[#487070] mb-0.5">{bids} bids</p>
+            <p className="text-xs text-[#8B9AC9] mb-0.5">{bids} bids</p>
             <p className="text-xs font-medium text-orange-400 flex items-center gap-1">
               <ClockIcon /> {timeLeft}
             </p>
@@ -474,35 +474,35 @@ function DailySalesSection() {
   ];
 
   return (
-    <section id="daily-sales" ref={ref} className="py-16 sm:py-24 bg-[#0B1E26]">
+    <section id="daily-sales" ref={ref} className="py-16 sm:py-24 bg-[#0A1430]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 mb-10 sm:mb-12">
           <div>
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#A5EC60]/20 bg-[#A5EC60]/10 text-[#A5EC60] text-[10px] sm:text-xs font-bold uppercase tracking-[0.18em] mb-4">
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#6E95FF]/20 bg-[#6E95FF]/10 text-[#6E95FF] text-[10px] sm:text-xs font-bold uppercase tracking-[0.18em] mb-4">
               <TagIcon /> Daily Sales
             </span>
             <h2 className={`text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-              Buy simple, fast, and <span className="text-[#A5EC60]">without an account</span>
+              Buy simple, fast, and <span className="text-[#6E95FF]">without an account</span>
             </h2>
-            <p className={`text-[#487070] text-sm sm:text-base max-w-2xl transition-all duration-700 delay-100 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+            <p className={`text-[#8B9AC9] text-sm sm:text-base max-w-2xl transition-all duration-700 delay-100 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
               Auctioneers upload verified products for quick daily sales. Anyone can browse, compare, and purchase instantly without creating an account.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 bg-[#18333D]/60 border border-[#487070]/20 rounded-full p-1.5 w-fit">
-            <button className="px-4 py-2 rounded-full bg-[#A5EC60] text-[#0B1E26] text-xs sm:text-sm font-bold">Daily Sales</button>
-            <button className="px-4 py-2 rounded-full text-[#487070] text-xs sm:text-sm font-medium hover:text-white transition-colors">Auction Listings</button>
+          <div className="flex items-center gap-2 bg-[#16294F]/60 border border-[#8B9AC9]/20 rounded-full p-1.5 w-fit">
+            <button className="px-4 py-2 rounded-full bg-[#6E95FF] text-[#0A1430] text-xs sm:text-sm font-bold">Daily Sales</button>
+            <button className="px-4 py-2 rounded-full text-[#8B9AC9] text-xs sm:text-sm font-medium hover:text-white transition-colors">Auction Listings</button>
           </div>
         </div>
 
         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8">
           {saleItems.map((item, i) => (
-            <div key={item.title} className={`group rounded-2xl sm:rounded-3xl overflow-hidden bg-[#18333D]/40 border border-[#487070]/10 hover:border-[#A5EC60]/20 transition-all duration-700 hover:shadow-2xl hover:shadow-[#A5EC60]/5 hover:-translate-y-3 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-16"}`} style={{ transitionDelay: `${200 + i * 150}ms` }}>
+            <div key={item.title} className={`group rounded-2xl sm:rounded-3xl overflow-hidden bg-[#16294F]/40 border border-[#8B9AC9]/10 hover:border-[#6E95FF]/20 transition-all duration-700 hover:shadow-2xl hover:shadow-[#6E95FF]/5 hover:-translate-y-3 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-16"}`} style={{ transitionDelay: `${200 + i * 150}ms` }}>
               <div className="relative overflow-hidden">
                 <img src={item.image} alt={item.title} className="w-full h-52 sm:h-60 object-cover transition-transform duration-700 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0B1E26]/80 to-transparent opacity-70" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0A1430]/80 to-transparent opacity-70" />
                 <div className="absolute top-3 left-3">
-                  <span className="bg-[#A5EC60] text-[#0B1E26] text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-full">{item.badge}</span>
+                  <span className="bg-[#6E95FF] text-[#0A1430] text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-full">{item.badge}</span>
                 </div>
                 <div className="absolute top-3 right-3">
                   <span className="bg-black/40 text-white border border-white/20 text-[10px] sm:text-xs font-medium px-2 py-1 rounded-full backdrop-blur-sm">{item.note}</span>
@@ -511,18 +511,18 @@ function DailySalesSection() {
 
               <div className="p-4 sm:p-5">
                 <div className="flex items-center justify-between gap-3 mb-2">
-                  <span className="text-[10px] sm:text-xs uppercase tracking-[0.14em] text-[#A5EC60] font-semibold">{item.category}</span>
-                  <span className="text-[10px] sm:text-xs text-[#487070]">Uploaded by {item.seller}</span>
+                  <span className="text-[10px] sm:text-xs uppercase tracking-[0.14em] text-[#6E95FF] font-semibold">{item.category}</span>
+                  <span className="text-[10px] sm:text-xs text-[#8B9AC9]">Uploaded by {item.seller}</span>
                 </div>
 
-                <h3 className="text-lg sm:text-xl font-bold text-white mb-3 group-hover:text-[#A5EC60] transition-colors duration-300">{item.title}</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-3 group-hover:text-[#6E95FF] transition-colors duration-300">{item.title}</h3>
 
-                <div className="flex items-end justify-between gap-3 pt-2 border-t border-[#487070]/10">
+                <div className="flex items-end justify-between gap-3 pt-2 border-t border-[#8B9AC9]/10">
                   <div>
-                    <p className="text-[10px] sm:text-xs text-[#487070] mb-1">Price</p>
-                    <p className="text-xl sm:text-2xl font-extrabold text-[#A5EC60]">{item.price}</p>
+                    <p className="text-[10px] sm:text-xs text-[#8B9AC9] mb-1">Price</p>
+                    <p className="text-xl sm:text-2xl font-extrabold text-[#6E95FF]">{item.price}</p>
                   </div>
-                  <button className="bg-[#419310] hover:bg-[#A5EC60] text-white hover:text-[#0B1E26] px-4 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0">
+                  <button className="bg-[#2C5DF2] hover:bg-[#6E95FF] text-white hover:text-[#0A1430] px-4 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0">
                     Buy Now
                   </button>
                 </div>
@@ -549,18 +549,18 @@ function FeaturedProperties() {
   ];
 
   return (
-    <section id="properties" ref={ref} className="py-16 sm:py-24 bg-[#0B1E26]">
+    <section id="properties" ref={ref} className="py-16 sm:py-24 bg-[#0A1430]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 sm:mb-12 gap-4">
           <div>
             <h2 className={`text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-              Featured <span className="text-[#A5EC60]">Properties</span>
+              Featured <span className="text-[#6E95FF]">Properties</span>
             </h2>
-            <p className={`text-[#487070] text-sm sm:text-base transition-all duration-700 delay-100 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+            <p className={`text-[#8B9AC9] text-sm sm:text-base transition-all duration-700 delay-100 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
               Hot properties available for bidding right now
             </p>
           </div>
-          <button className={`flex items-center gap-2 text-[#A5EC60] font-bold text-sm hover:gap-3 transition-all duration-300 ${inView ? "opacity-100" : "opacity-0"}`}>
+          <button className={`flex items-center gap-2 text-[#6E95FF] font-bold text-sm hover:gap-3 transition-all duration-300 ${inView ? "opacity-100" : "opacity-0"}`}>
             View All <ArrowRightIcon />
           </button>
         </div>
@@ -603,14 +603,14 @@ function Stats() {
   }, [inView]);
 
   return (
-    <section ref={ref} className="py-16 sm:py-20 bg-[#0B1E26] border-y border-[#18333D]/50">
+    <section ref={ref} className="py-16 sm:py-20 bg-[#0A1430] border-y border-[#16294F]/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
           {counts.map((count, i) => (
             <div key={labels[i]} className={`text-center transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
               style={{ transitionDelay: `${i * 100}ms` }}>
-              <div className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#A5EC60] mb-2">{count}{suffixes[i]}</div>
-              <div className="text-xs sm:text-sm text-[#487070] font-medium">{labels[i]}</div>
+              <div className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#6E95FF] mb-2">{count}{suffixes[i]}</div>
+              <div className="text-xs sm:text-sm text-[#8B9AC9] font-medium">{labels[i]}</div>
             </div>
           ))}
         </div>
@@ -627,19 +627,19 @@ function CTA() {
   const { ref, inView } = useInView();
 
   return (
-    <section ref={ref} className="py-20 sm:py-24 bg-gradient-to-br from-[#1C621B] to-[#419310] relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-72 h-72 bg-[#A5EC60]/5 rounded-full -translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#A5EC60]/5 rounded-full translate-x-1/3 translate-y-1/3" />
+    <section ref={ref} className="py-20 sm:py-24 bg-gradient-to-br from-[#0F2A7A] to-[#2C5DF2] relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-72 h-72 bg-[#6E95FF]/5 rounded-full -translate-x-1/2 -translate-y-1/2" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#6E95FF]/5 rounded-full translate-x-1/3 translate-y-1/3" />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center relative z-10">
         <h2 className={`text-2xl sm:text-3xl md:text-5xl font-bold text-white mb-4 sm:mb-6 leading-tight transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
           Ready to Start Bidding?
         </h2>
-        <p className={`text-[#A5EC60]/80 text-base sm:text-lg max-w-xl mx-auto mb-8 sm:mb-10 transition-all duration-700 delay-100 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+        <p className={`text-[#6E95FF]/80 text-base sm:text-lg max-w-xl mx-auto mb-8 sm:mb-10 transition-all duration-700 delay-100 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
           Join thousands of bidders across Malawi. Register today and get access to exclusive auctions.
         </p>
         <div className={`flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 transition-all duration-700 delay-200 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-          <Link href="/signup" className="bg-[#A5EC60] text-[#0B1E26] px-8 py-4 rounded-full text-base font-bold transition-all duration-300 hover:shadow-xl hover:shadow-black/10 hover:-translate-y-1 active:translate-y-0 w-full sm:w-auto text-center">
+          <Link href="/signup" className="bg-[#6E95FF] text-[#0A1430] px-8 py-4 rounded-full text-base font-bold transition-all duration-300 hover:shadow-xl hover:shadow-black/10 hover:-translate-y-1 active:translate-y-0 w-full sm:w-auto text-center">
             Create Free Account
           </Link>
           <Link href="/login" className="border-2 border-white/20 text-white px-8 py-4 rounded-full text-base font-semibold transition-all duration-300 hover:bg-white/10 hover:border-white/40 w-full sm:w-auto text-center">
@@ -657,7 +657,7 @@ function CTA() {
 
 function Footer() {
   return (
-    <footer className="bg-[#0B1E26] border-t border-[#18333D]/50 text-[#487070] py-12 sm:py-16">
+    <footer className="bg-[#0A1430] border-t border-[#16294F]/50 text-[#8B9AC9] py-12 sm:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-12 mb-10 sm:mb-12">
           <div className="col-span-2 md:col-span-1">
@@ -674,7 +674,7 @@ function Footer() {
             <h4 className="text-white font-semibold mb-3 sm:mb-4 text-sm">Platform</h4>
             <ul className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
               {["Browse Auctions", "How It Works", "Pricing", "Success Stories"].map(item => (
-                <li key={item}><a href="#" className="hover:text-[#A5EC60] transition-colors duration-300">{item}</a></li>
+                <li key={item}><a href="#" className="hover:text-[#6E95FF] transition-colors duration-300">{item}</a></li>
               ))}
             </ul>
           </div>
@@ -683,7 +683,7 @@ function Footer() {
             <h4 className="text-white font-semibold mb-3 sm:mb-4 text-sm">Company</h4>
             <ul className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
               {["About Us", "For Auctioneers", "Careers", "Contact"].map(item => (
-                <li key={item}><a href="#" className="hover:text-[#A5EC60] transition-colors duration-300">{item}</a></li>
+                <li key={item}><a href="#" className="hover:text-[#6E95FF] transition-colors duration-300">{item}</a></li>
               ))}
             </ul>
           </div>
@@ -692,17 +692,17 @@ function Footer() {
             <h4 className="text-white font-semibold mb-3 sm:mb-4 text-sm">Support</h4>
             <ul className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
               {["Help Center", "Payment Guide", "Terms of Service", "Privacy Policy"].map(item => (
-                <li key={item}><a href="#" className="hover:text-[#A5EC60] transition-colors duration-300">{item}</a></li>
+                <li key={item}><a href="#" className="hover:text-[#6E95FF] transition-colors duration-300">{item}</a></li>
               ))}
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-[#18333D]/50 pt-6 sm:pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="border-t border-[#16294F]/50 pt-6 sm:pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs sm:text-sm text-center sm:text-left">&copy; 2026 TrustBid. A project by Asante Ngwira — CIS-PRJ-411.</p>
           <div className="flex items-center gap-3">
             {["T", "F", "I", "L"].map(letter => (
-              <a key={letter} href="#" className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#18333D]/50 flex items-center justify-center hover:bg-[#A5EC60] hover:text-[#0B1E26] transition-all duration-300 text-xs font-bold">
+              <a key={letter} href="#" className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#16294F]/50 flex items-center justify-center hover:bg-[#6E95FF] hover:text-[#0A1430] transition-all duration-300 text-xs font-bold">
                 {letter}
               </a>
             ))}
@@ -726,7 +726,7 @@ export default function LandingPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-      <main className="min-h-screen bg-[#0B1E26] font-sans antialiased">
+      <main className="min-h-screen bg-[#0A1430] font-sans antialiased">
         <Navbar />
         <Hero />
         {/* Document order: hero → daily sales → properties */}

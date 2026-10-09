@@ -80,6 +80,18 @@ async function purchaseDailySale(saleId, session) {
       },
     });
 
+    // Seller-side ledger — the auctioneer's Payments tab shows what they
+    // received from daily sales.
+    await tx.payment.create({
+      data: {
+        userId: sale.asset.createdById,
+        amount,
+        reference: `${reference}-IN`,
+        gatewayStatus: "completed",
+        purpose: "DAILY_SALE_RECEIVED",
+      },
+    });
+
     return {
       reference,
       kind: "Daily Sale",
@@ -117,23 +129,61 @@ async function purchaseProperty(assetId, session) {
       throw new Error("You cannot purchase your own listing.");
     }
 
+    const attrs =
+      asset.attributes && typeof asset.attributes === "object" && !Array.isArray(asset.attributes)
+        ? { ...asset.attributes }
+        : {};
+    const isLease = attrs.listingType === "LEASE" && Number(attrs.monthlyRent) > 0;
+
     // Same price source as the marketplace card (salePrice, else reserve/starting).
     const legacyLot = asset.auctionItems?.[0] || null;
-    const price = asset.salePrice
+    const price = isLease
+      ? Number(attrs.monthlyRent)
+      : asset.salePrice
       ? Number(asset.salePrice)
       : legacyLot
       ? Number(legacyLot.reservePrice || legacyLot.startingBid)
       : 0;
-    if (price <= 0) throw new Error("This property has no sale price set.");
+    if (price <= 0) {
+      throw new Error(
+        isLease ? "This lease has no monthly rent set." : "This property has no sale price set."
+      );
+    }
 
     // Guarded claim — only one buyer can flip isSold.
     const claimed = await tx.asset.updateMany({
       where: { id: asset.id, salesType: "PROPERTY", isSold: false },
       data: { isSold: true },
     });
-    if (claimed.count === 0) throw new Error("This property has already been sold.");
+    if (claimed.count === 0) {
+      throw new Error(
+        attrs.leaseTenantId ? "This property is already leased." : "This property has already been sold."
+      );
+    }
 
-    const reference = generateReference("PROP");
+    const reference = generateReference(isLease ? "LEASE" : "PROP");
+
+    // Document: a lease records the tenant and rolls the next rent due date
+    // forward one month at a time so automatic reminders can be sent.
+    if (isLease) {
+      const startedAt = new Date();
+      const nextRentDue = new Date(startedAt);
+      nextRentDue.setMonth(nextRentDue.getMonth() + 1);
+      await tx.asset.update({
+        where: { id: asset.id },
+        data: {
+          attributes: {
+            ...attrs,
+            leaseTenantId: Number(session.user.id),
+            leaseTenantName: session.user.name || "Valued Tenant",
+            leaseTenantEmail: session.user.email,
+            leaseStartedAt: startedAt.toISOString(),
+            nextRentDue: nextRentDue.toISOString(),
+            lastRentReminderFor: null,
+          },
+        },
+      });
+    }
 
     await tx.payment.create({
       data: {
@@ -141,13 +191,25 @@ async function purchaseProperty(assetId, session) {
         amount: price,
         reference,
         gatewayStatus: "completed",
-        purpose: "PROPERTY_PURCHASE",
+        purpose: isLease ? "PROPERTY_LEASE" : "PROPERTY_PURCHASE",
+      },
+    });
+
+    // Seller-side ledger — the auctioneer's Payments tab shows what they
+    // received from property sales and leases.
+    await tx.payment.create({
+      data: {
+        userId: asset.createdById,
+        amount: price,
+        reference: `${reference}-IN`,
+        gatewayStatus: "completed",
+        purpose: isLease ? "PROPERTY_LEASE_RECEIVED" : "PROPERTY_RECEIVED",
       },
     });
 
     return {
       reference,
-      kind: "Property",
+      kind: isLease ? "Property Lease (1st month)" : "Property",
       title: asset.title,
       category: asset.category,
       location: asset.location,
