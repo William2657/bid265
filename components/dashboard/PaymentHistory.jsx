@@ -75,6 +75,7 @@ export default function PaymentHistory({ role }) {
     SECURITY_DEPOSIT: "Auction entry fee",
     DAILY_SALE_PURCHASE: "Daily sale purchase",
     PROPERTY_PURCHASE: "Property purchase",
+    PROPERTY_RENT: "Property rent",
   })[purpose] || purpose || "Payment";
 
   useEffect(() => {

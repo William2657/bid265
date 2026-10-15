@@ -13,7 +13,7 @@ export async function startListingPurchase(kind, listingId) {
   }
 
   const id = Number(listingId);
-  if (!Number.isInteger(id) || id <= 0 || !["DAILY_SALE", "PROPERTY"].includes(kind)) {
+  if (!Number.isInteger(id) || id <= 0 || !["DAILY_SALE", "PROPERTY", "PROPERTY_RENT"].includes(kind)) {
     return { success: false, error: "Invalid listing purchase request." };
   }
 
@@ -49,7 +49,7 @@ export async function startListingPurchase(kind, listingId) {
         dailySaleId = sale.id;
         amount = Number(sale.price);
         [asset] = await tx.select().from(assets).where(eq(assets.id, sale.assetId)).limit(1);
-      } else {
+      } else if (kind === "PROPERTY") {
         [asset] = await tx.select().from(assets).where(and(
           eq(assets.id, id),
           eq(assets.salesType, "PROPERTY"),
@@ -72,6 +72,25 @@ export async function startListingPurchase(kind, listingId) {
         )).limit(1);
         if (otherPending) throw new Error("A purchase for this property is already being processed.");
         amount = Number(asset.salePrice);
+      } else {
+        [asset] = await tx.select().from(assets).where(and(
+          eq(assets.id, id),
+          eq(assets.salesType, "PROPERTY"),
+          eq(assets.listingType, "LEASE"),
+          eq(assets.isSold, false),
+        )).limit(1);
+        if (!asset) throw new Error("This lease listing is no longer available.");
+
+        const [pending] = await tx.select().from(sales).where(and(
+          eq(sales.buyerId, Number(session.user.id)),
+          eq(sales.assetId, asset.id),
+          eq(sales.kind, "PROPERTY_RENT"),
+          eq(sales.status, "PENDING"),
+        )).limit(1);
+        if (pending) {
+          return { amount: Number(pending.amount), paymentRef: pending.paymentRef, kind: pending.kind, title: asset.title };
+        }
+        amount = Number(asset.monthlyRent);
       }
 
       if (!asset || !Number.isFinite(amount) || amount <= 0) {
@@ -79,7 +98,11 @@ export async function startListingPurchase(kind, listingId) {
       }
 
       const paymentRef = `BID265-${randomUUID()}`;
-      const purchaseKind = kind === "DAILY_SALE" ? "DAILY_SALE_PURCHASE" : "PROPERTY_PURCHASE";
+      const purchaseKind = kind === "DAILY_SALE"
+        ? "DAILY_SALE_PURCHASE"
+        : kind === "PROPERTY"
+          ? "PROPERTY_PURCHASE"
+          : "PROPERTY_RENT";
       await tx.insert(sales).values({
         assetId: asset.id,
         dailySaleId,

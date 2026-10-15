@@ -42,7 +42,7 @@ export default function SignUpPage() {
         const err = await response.json();
         setError(err.message || "Registration failed");
       }
-    } catch (error) {
+    } catch {
       setError("Connection error. Please try again.");
     } finally {
       setLoading(false);

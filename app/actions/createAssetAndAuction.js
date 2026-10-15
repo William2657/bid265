@@ -1,10 +1,9 @@
 "use server";
 
 import { auth } from "../../auth";
-import fs from "fs/promises";
-import path from "path";
 import { db } from "@/lib/db";
-import { assetImages, assets, auctionItems } from "@/lib/db/schema";
+import { assets, auctionItems } from "@/lib/db/schema";
+import { storeAssetImage, validateImageFile } from "@/lib/imageStorage";
 
 export async function createAssetAndAuction(formData) {
   try {
@@ -86,24 +85,7 @@ export async function createAssetAndAuction(formData) {
     }
 
     const file = formData.get("assetImageFile");
-    let calculatedImageUrl = "";
-
-    if (file && file.size > 0) {
-      const uploadDir = path.join(process.cwd(), "public", "uploads");
-      await fs.mkdir(uploadDir, { recursive: true });
-
-      const fileExtension = path.extname(file.name);
-      const uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}${fileExtension}`;
-      const filePath = path.join(uploadDir, uniqueFileName);
-
-      const fileBytes = await file.arrayBuffer();
-      const fileBuffer = Buffer.from(fileBytes);
-
-      await fs.writeFile(filePath, fileBuffer);
-      calculatedImageUrl = `/uploads/${uniqueFileName}`;
-    } else {
-      throw new Error("No image file captured.");
-    }
+    validateImageFile(file);
 
     const result = await db.transaction(async (tx) => {
       const [newAsset] = await tx.insert(assets).values({
@@ -135,11 +117,7 @@ export async function createAssetAndAuction(formData) {
         status: isAuction ? "UPCOMING" : "CLOSED",
       }).returning();
 
-      await tx.insert(assetImages).values({
-        auctionItemId: newAuctionItem.id,
-        url: calculatedImageUrl,
-        isPrimary: true,
-      });
+      await storeAssetImage(tx, newAuctionItem.id, file);
 
       return { asset: newAsset, auctionItem: newAuctionItem };
     });

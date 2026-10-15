@@ -6,6 +6,8 @@ import { createAssetAndAuction } from "@/app/actions/createAssetAndAuction";
 import { getLiveKitToken, updateAuctionToLiveDirectly, closeLiveAuctionDirectly } from "@/app/actions/liveAuction"; // 👈 Connected Directly to Refactored DB Actions
 import { useRouter } from "next/navigation";
 
+const createLiveRoomId = (itemId) => `room-lot-${itemId}-${Date.now()}`;
+
 export default function AuctioneerDashboard({ user, auctionItems: initialAuctionItems = [] }) {
   const router = useRouter();
   
@@ -98,7 +100,7 @@ export default function AuctioneerDashboard({ user, auctionItems: initialAuction
         setIsInitializingId(itemId);
       }
       
-      const computedRoomId = `room-lot-${itemId}-${Date.now()}`;
+      const computedRoomId = createLiveRoomId(itemId);
       
       // 💾 PERSIST TO DATABASE: Flipped directly via server action
       const updateResult = await updateAuctionToLiveDirectly(itemId, computedRoomId);

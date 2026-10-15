@@ -52,6 +52,7 @@ export default function AuctioneerFinance({ view = "payments" }) {
     ["Total payments received", summary.totalRevenue, Wallet],
     ["Daily sales revenue", summary.dailySalesRevenue, BarChart3],
     ["Property sales revenue", summary.propertySalesRevenue, BarChart3],
+    ["Property rent received", summary.propertyRentRevenue, Wallet],
     ["Auction entry fees", summary.entryFeeRevenue, Wallet],
     ["Bidding funds / security deposits", summary.biddingDepositRevenue, Wallet],
   ];
@@ -62,7 +63,7 @@ export default function AuctioneerFinance({ view = "payments" }) {
         <div>
           <h1 className="text-lg font-bold text-[var(--color-text)]">{isReport ? "Sales Report" : "Payments Received"}</h1>
           <p className="mt-1 text-xs text-[var(--color-muted)]">
-            Successful daily sales, property purchases, auction entry fees, and bidding deposits.
+            Successful daily sales, property purchases and rent, auction entry fees, and bidding deposits.
           </p>
         </div>
         <button onClick={loadFinance} aria-label="Refresh finance" className="rounded-lg border border-[var(--color-border)] p-2 text-[var(--color-muted)]">

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { assets, auctionItems, bids, dailySales } from "@/lib/db/schema";
+import { assets, auctionItems, bids, dailySales, sales } from "@/lib/db/schema";
 import { and, desc, eq, gt, ilike, inArray, or } from "drizzle-orm";
 
 /**
@@ -60,7 +60,9 @@ export async function GET(request) {
         },
         orderBy: [desc(auctionItems.startTime)],
       });
-      const available = auctionRows.filter((item) => item.asset?.listingType === "AUCTION");
+      const available = auctionRows.filter((item) =>
+        item.asset?.listingType === "AUCTION" && item.asset.isListed && !item.asset.isSold
+      );
       const items = available.map((item) => ({
         id: item.id,
         assetId: item.asset.id,
@@ -110,7 +112,7 @@ export async function GET(request) {
       });
 
       const items = dailySaleRows
-        .filter((sale) => sale.asset && !sale.asset.isSold && sale.asset.salesType === "DAILY_SALE")
+        .filter((sale) => sale.asset && sale.asset.isListed && !sale.asset.isSold && sale.asset.salesType === "DAILY_SALE")
         .filter((sale) => {
           if (!searchFilter) return true;
           const haystack = [
@@ -155,8 +157,12 @@ export async function GET(request) {
     }
 
     // ── PROPERTIES: sale and lease listings; auctions are shown on the auction floor ──
+    const pendingPropertyPurchases = await db.select({ assetId: sales.assetId }).from(sales)
+      .where(and(eq(sales.kind, "PROPERTY_PURCHASE"), eq(sales.status, "PENDING")));
+    const pendingPropertyIds = new Set(pendingPropertyPurchases.map((purchase) => purchase.assetId));
     const properties = await db.query.assets.findMany({
       where: and(
+        eq(assets.isListed, true),
         eq(assets.isSold, false),
         eq(assets.salesType, "PROPERTY"),
         inArray(assets.listingType, ["SALE", "LEASE"]),
@@ -175,7 +181,7 @@ export async function GET(request) {
       orderBy: [desc(assets.createdAt)],
     });
 
-    const items = properties.map((asset) => {
+    const items = properties.filter((asset) => !pendingPropertyIds.has(asset.id)).map((asset) => {
       const liveAuction =
         asset.auctionItems.find((ai) => ai.status === "ACTIVE" || ai.status === "UPCOMING") ||
         asset.auctionItems[0] ||

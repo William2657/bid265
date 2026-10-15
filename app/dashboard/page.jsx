@@ -46,7 +46,7 @@ export default async function DashboardPage() {
       assetUpdatedAt: assets.updatedAt,
     }).from(auctionItems)
       .innerJoin(assets, eq(auctionItems.assetId, assets.id))
-      .where(and(eq(assets.createdById, user.id), eq(assets.listingType, "AUCTION")))
+      .where(and(eq(assets.createdById, user.id), eq(assets.listingType, "AUCTION"), eq(assets.isListed, true)))
       .orderBy(desc(auctionItems.createdAt));
 
     serializedAuctionItems = rawAuctionItems.map((item) => ({

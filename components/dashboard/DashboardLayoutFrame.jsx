@@ -10,7 +10,6 @@ import {
   Gavel,
   LayoutDashboard,
   Tv, 
-  FolderGit, 
   Wallet,
   ChevronLeft,
   ChevronRight,
@@ -138,6 +137,7 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
     const labels = {
       "dashboard": "Dashboard",
       "live-auctions": isAuctioneer ? "Auctions" : "Live Auction Floor",
+      "manage-auctions": "Manage Auctions",
       "daily-sales": "Daily Sales",
       "properties": "Properties",
       "my-bids": "My Bids",
@@ -155,10 +155,10 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
   const navItems = [
     { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", show: true },
     { id: "live-auctions", icon: Tv, label: isAuctioneer ? "Auctions" : "Live Auction Floor", show: !isAdmin, badge: liveCount },
-    { id: "daily-sales", icon: ShoppingBag, label: "Daily Sales", show: isBidder },
-    { id: "properties", icon: Home, label: "Properties", show: isBidder },
+    { id: "manage-auctions", icon: Gavel, label: "Manage Auctions", show: isAuctioneer },
+    { id: "daily-sales", icon: ShoppingBag, label: "Daily Sales", show: isBidder || isAuctioneer },
+    { id: "properties", icon: Home, label: "Properties", show: isBidder || isAuctioneer },
     { id: "my-bids", icon: Gavel, label: "My Bids", show: isBidder },
-    { id: "manage-listings", icon: FolderGit, label: "Manage Listings", show: isAuctioneer },
     { id: "auctioneers", icon: User, label: "Auctioneers", show: isAdmin },
     { id: "users", icon: Users, label: "User Management", show: isAdmin },
     { id: "payments", icon: Wallet, label: isAuctioneer ? "Payments Received" : "Receipts", show: true },
@@ -415,15 +415,24 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
                 <BidderLiveConsole auctionItems={serializedAuctionItems} />
               )
             )}
+            {activeTab === "manage-auctions" && isAuctioneer && (
+              <AuctioneerManageAssets initialTab="auctions" />
+            )}
 
-            {/* Daily Sales (Bidder) — regular sold commodities with search */}
+            {/* Daily sales */}
             {activeTab === "daily-sales" && isBidder && (
               <BidderMarketplace initialTab="daily-sales" />
             )}
+            {activeTab === "daily-sales" && isAuctioneer && (
+              <AuctioneerManageAssets initialTab="daily-sales" />
+            )}
 
-            {/* Properties (Bidder) — land & buildings searchable by location */}
+            {/* Properties */}
             {activeTab === "properties" && isBidder && (
               <BidderMarketplace initialTab="properties" />
+            )}
+            {activeTab === "properties" && isAuctioneer && (
+              <AuctioneerManageAssets initialTab="properties" />
             )}
 
             {/* My Bids (Bidder only) */}
@@ -433,7 +442,7 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
 
             {/* Manage Listings (Auctioneer only) */}
             {activeTab === "manage-listings" && isAuctioneer && (
-              <AuctioneerManageAssets />
+              <AuctioneerManageAssets initialTab="daily-sales" />
             )}
 
             {/* Add Listing form (redirect target of the Add Listing button) */}
@@ -538,7 +547,7 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
           </button>
         )}
 
-        {isBidder && (
+        {(isBidder || isAuctioneer) && (
           <button
             onClick={() => setActiveTab("daily-sales")}
             className={`flex flex-col items-center justify-center flex-1 h-full py-2 transition-all ${
@@ -550,7 +559,7 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
           </button>
         )}
 
-        {isBidder && (
+        {(isBidder || isAuctioneer) && (
           <button
             onClick={() => setActiveTab("properties")}
             className={`flex flex-col items-center justify-center flex-1 h-full py-2 transition-all ${
@@ -559,18 +568,6 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
           >
             <Home className="w-5 h-5 mb-0.5" />
             <span className="text-[10px] tracking-tight">Props</span>
-          </button>
-        )}
-
-        {isAuctioneer && (
-          <button
-            onClick={() => setActiveTab("manage-listings")}
-            className={`flex flex-col items-center justify-center flex-1 h-full py-2 transition-all ${
-              activeTab === "manage-listings" ? "text-[var(--color-primary)] scale-105 font-bold" : "text-[var(--color-muted)] font-medium"
-            }`}
-          >
-            <FolderGit className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px] tracking-tight">Listings</span>
           </button>
         )}
 

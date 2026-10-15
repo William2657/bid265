@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
 
   experimental: {
     serverActions: {
-      bodySizeLimit: "10mb",
+      bodySizeLimit: "4mb",
       allowedOrigins: [
         "glorious-computing-machine-r4rx67jrqr74hxj6q-3000.app.github.dev",
         "turbo-umbrella-4qjpx64954p6hwg6-34221.app.github.dev",

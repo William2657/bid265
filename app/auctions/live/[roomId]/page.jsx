@@ -2,10 +2,15 @@
 
 import { useEffect, useState, use, useRef, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getLiveKitToken, submitLiveBid, getAuctionItemDetails } from "@/app/actions/liveAuction";
+import {
+  closeLiveAuctionDirectly,
+  getLiveKitToken,
+  getAuctionItemDetails,
+  submitLiveBid,
+  updateAuctionControls,
+} from "@/app/actions/liveAuction";
 import Pusher from "pusher-js";
 import { 
-  Gavel, 
   ArrowLeft, 
   Clock, 
   Send,
@@ -13,8 +18,8 @@ import {
   Crown,
   User,
   MapPin,
-  Tag,
-  ChevronRight
+  Power,
+  Clock3,
 } from "lucide-react";
 
 export default function LiveRoomPage({ params }) {
@@ -39,6 +44,8 @@ export default function LiveRoomPage({ params }) {
   const [highestBid, setHighestBid] = useState(0);
   const [timeLeft, setTimeLeft] = useState("");
   const [isAuctionClosed, setIsAuctionClosed] = useState(false);
+  const [isUpdatingControls, setIsUpdatingControls] = useState(false);
+  const [controlError, setControlError] = useState("");
 
   const bidInputRef = useRef(null);
   const bidsEndRef = useRef(null);
@@ -121,6 +128,7 @@ export default function LiveRoomPage({ params }) {
         ...current,
         endTime: controls.endTime || current.endTime,
         reservePriceDisclosed: Boolean(controls.reservePriceDisclosed),
+        reservePrice: controls.reservePrice ?? null,
       } : current);
     });
     channel.bind("auction-closed", () => {
@@ -206,6 +214,38 @@ export default function LiveRoomPage({ params }) {
     setBidAmount(String(amount));
     bidInputRef.current?.focus();
   }, [auctionItem?.maximumBid, isAuctionClosed]);
+
+  const handleControlUpdate = async (controls) => {
+    setIsUpdatingControls(true);
+    setControlError("");
+    try {
+      const result = await updateAuctionControls(auctionItemId, controls);
+      if (!result.success) throw new Error(result.error || "Could not update auction controls.");
+      setAuctionItem((current) => current ? { ...current, ...result.data } : current);
+      if (result.notificationError) setControlError(result.notificationError);
+    } catch (error) {
+      setControlError(error.message || "Could not update auction controls.");
+    } finally {
+      setIsUpdatingControls(false);
+    }
+  };
+
+  const handleCloseAuction = async () => {
+    if (!window.confirm("End this live auction and settle its bids?")) return;
+    setIsUpdatingControls(true);
+    setControlError("");
+    try {
+      const result = await closeLiveAuctionDirectly(auctionItemId);
+      if (!result.success) throw new Error(result.error || "Could not close this auction.");
+      setIsAuctionClosed(true);
+      setTimeLeft("00:00:00");
+      if (result.closeNotificationError) setControlError(result.closeNotificationError);
+    } catch (error) {
+      setControlError(error.message || "Could not close this auction.");
+    } finally {
+      setIsUpdatingControls(false);
+    }
+  };
 
   const handleLeaveRoom = () => router.push("/dashboard");
 
@@ -498,18 +538,48 @@ export default function LiveRoomPage({ params }) {
           {/* Auctioneer */}
           {isAuctioneer && (
             <div className="rounded-2xl p-5 border" style={{ backgroundColor: "rgba(165,236,96,0.03)", borderColor: "rgba(165,236,96,0.15)" }}>
-              <p className="text-[9px] uppercase tracking-wider font-bold mb-3" style={{ color: "var(--color-muted)" }}>Auctioneer</p>
-              <p className="text-sm font-bold mb-4">{currentUser?.name || currentUserRole}</p>
-              <div className="space-y-2">
-                <button className="w-full py-2.5 rounded-lg font-bold text-xs"
-                        style={{ backgroundColor: "var(--color-primary)", color: "var(--color-bg)" }}>
-                  Next Item
-                </button>
-                <button className="w-full py-2.5 rounded-lg font-bold text-xs"
-                        style={{ backgroundColor: "rgba(239,68,68,0.08)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.15)" }}>
-                  Close Auction
-                </button>
+              <p className="text-[9px] uppercase tracking-wider font-bold mb-1" style={{ color: "var(--color-muted)" }}>Auction controls</p>
+              <p className="text-sm font-bold mb-3">{currentUser?.name || currentUserRole}</p>
+              <label className="mb-3 flex items-center gap-2 text-xs font-semibold">
+                <input
+                  type="checkbox"
+                  checked={Boolean(auctionItem.reservePriceDisclosed)}
+                  disabled={isUpdatingControls || isAuctionClosed}
+                  onChange={(event) => handleControlUpdate({ reservePriceDisclosed: event.target.checked })}
+                  className="accent-[var(--color-primary)]"
+                />
+                Disclose reserve price to bidders
+              </label>
+              <div className="mb-3 rounded-xl border p-3" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-input)" }}>
+                <p className="mb-2 flex items-center gap-1 text-[10px] font-bold uppercase" style={{ color: "var(--color-muted)" }}>
+                  <Clock3 size={12} /> Extend bidding time
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[5, 10, 20].map((seconds) => (
+                    <button
+                      key={seconds}
+                      type="button"
+                      disabled={isUpdatingControls || isAuctionClosed}
+                      onClick={() => handleControlUpdate({ extendSeconds: seconds })}
+                      className="rounded-lg border px-2 py-1.5 text-[10px] font-bold disabled:opacity-50"
+                      style={{ borderColor: "var(--color-border)" }}
+                    >
+                      +{seconds}s
+                    </button>
+                  ))}
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={handleCloseAuction}
+                disabled={isUpdatingControls || isAuctionClosed}
+                className="flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold disabled:opacity-50"
+                style={{ backgroundColor: "rgba(239,68,68,0.08)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.15)" }}
+              >
+                {isUpdatingControls ? <Loader2 size={14} className="animate-spin" /> : <Power size={14} />}
+                End auction
+              </button>
+              {controlError && <p className="mt-2 text-xs text-rose-400" role="alert">{controlError}</p>}
             </div>
           )}
 

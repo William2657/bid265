@@ -36,6 +36,20 @@
       "when": 1791916927897,
       "tag": "0004_auction_admin_settlement_controls",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791989895801,
+      "tag": "0005_listing_archive_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792047742137,
+      "tag": "0006_medical_ghost_rider",
+      "breakpoints": true
     }
   ]
 }

@@ -50,7 +50,7 @@ export async function POST(request) {
       }
     }
 
-    if (["DAILY_SALE_PURCHASE", "PROPERTY_PURCHASE"].includes(purpose)) {
+    if (["DAILY_SALE_PURCHASE", "PROPERTY_PURCHASE", "PROPERTY_RENT"].includes(purpose)) {
       const [purchase] = await db.select().from(sales).where(and(
         eq(sales.buyerId, Number(session.user.id)),
         eq(sales.paymentRef, tx_ref),

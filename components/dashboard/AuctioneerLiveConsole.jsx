@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { Loader2, LayoutGrid, ArrowRight, Hourglass, Users, Power, Eye, CalendarPlus, Clock3 } from "lucide-react";
-import { getLiveKitToken, updateAuctionToLiveDirectly, closeLiveAuctionDirectly, updateAuctionControls } from "@/app/actions/liveAuction";
+import { Loader2, LayoutGrid, ArrowRight, Hourglass, Eye, CalendarPlus, Search, Filter, ChevronDown, Edit2 } from "lucide-react";
+import { getLiveKitToken, updateAuctionToLiveDirectly } from "@/app/actions/liveAuction";
 import { hasClearedAuctionGate } from "@/app/actions/auctionAccess";
 import AuctionAccessGate from "@/components/dashboard/AuctionAccessGate";
 import { useRouter } from "next/navigation";
+
+const createLiveRoomId = (itemId) => `room-lot-${itemId}-${Date.now()}`;
 
 export default function AuctioneerLiveConsole({ auctionItems = [], onItemsUpdate }) {
   const router = useRouter();
@@ -14,6 +16,9 @@ export default function AuctioneerLiveConsole({ auctionItems = [], onItemsUpdate
   const [isInitializingId, setIsInitializingId] = useState(null); 
   const [isActionLoadingId, setIsActionLoadingId] = useState(null);
   const [gateAuction, setGateAuction] = useState(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const enterLiveRoom = async (roomId, auctionItemId) => {
     const access = await hasClearedAuctionGate(auctionItemId);
@@ -49,7 +54,7 @@ export default function AuctioneerLiveConsole({ auctionItems = [], onItemsUpdate
     try {
       setIsInitializingId(itemId);
       
-      const computedRoomId = `room-lot-${itemId}-${Date.now()}`;
+      const computedRoomId = createLiveRoomId(itemId);
       const updateResult = await updateAuctionToLiveDirectly(itemId, computedRoomId);
       if (!updateResult?.success) {
         throw new Error(updateResult?.error || "Could not start this auction.");
@@ -72,22 +77,6 @@ export default function AuctioneerLiveConsole({ auctionItems = [], onItemsUpdate
     }
   };
 
-  const handleUpdateAuctionControls = async (item, controls) => {
-    try {
-      setIsActionLoadingId(item.id);
-      const result = await updateAuctionControls(item.id, controls);
-      if (!result?.success) throw new Error(result?.error || "Could not update auction controls.");
-      syncItemsList(itemsList.map((candidate) => candidate.id === item.id
-        ? { ...candidate, ...result.data }
-        : candidate));
-      if (result.notificationError) alert(result.notificationError);
-    } catch (error) {
-      alert(error.message || "Could not update auction controls.");
-    } finally {
-      setIsActionLoadingId(null);
-    }
-  };
-
   const handleWatchLiveRoom = async (item) => {
     try {
       setIsActionLoadingId(item.id);
@@ -105,29 +94,12 @@ export default function AuctioneerLiveConsole({ auctionItems = [], onItemsUpdate
     }
   };
 
-  const handleTerminateLiveSession = async (itemId) => {
-    const confirmation = confirm("Are you sure you want to end this live auction session?");
-    if (!confirmation) return;
-    try {
-      setIsActionLoadingId(itemId);
-      const result = await closeLiveAuctionDirectly(itemId);
-      if (!result?.success) {
-        throw new Error(result?.error || "Could not close this auction.");
-      }
-      const updated = itemsList.map(item => item.id === itemId ? { ...item, status: "CLOSED" } : item);
-      syncItemsList(updated);
-      const pendingRefunds = result.settlement?.refundCount || 0;
-      const emailWarnings = result.settlement?.emailResult?.errors || [];
-      const warnings = [...emailWarnings, result.closeNotificationError].filter(Boolean);
-      alert(`Lot #${itemId} is closed. ${pendingRefunds} bidder refund(s) are queued for administrator processing.${warnings.length ? ` Warnings: ${warnings.join(" ")}` : ""}`);
-    } catch (err) {
-      alert("Failed to close remote instance block: " + err.message);
-    } finally {
-      setIsActionLoadingId(null);
-    }
-  };
-
-  const visibleActiveItems = itemsList.filter(item => item.status !== "CLOSED");
+  const visibleActiveItems = itemsList.filter((item) => {
+    const text = `${item.asset?.title || ""} ${item.asset?.description || ""} ${item.asset?.location || ""}`.toLowerCase();
+    const isLive = item.status === "ACTIVE" || item.status === "LIVE";
+    const matchesStatus = !statusFilter || (statusFilter === "LIVE" ? isLive : !isLive);
+    return item.status !== "CLOSED" && text.includes(search.trim().toLowerCase()) && matchesStatus;
+  });
 
   return (
     <div className="space-y-6 md:space-y-8 pb-10">
@@ -136,13 +108,22 @@ export default function AuctioneerLiveConsole({ auctionItems = [], onItemsUpdate
           <h2 className="text-sm font-bold text-[var(--color-text)]">Auctions</h2>
           <p className="mt-1 text-[11px] text-[var(--color-muted)]">Schedule an auction or manage your scheduled and live auctions.</p>
         </div>
-        <button
-          type="button"
-          onClick={() => router.push("/dashboard/add-listing?mode=auction")}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-xs font-bold text-white transition hover:opacity-90"
-        >
-          <CalendarPlus className="h-4 w-4" /> Schedule Auction
-        </button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard?tab=manage-auctions")}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] px-4 py-2.5 text-xs font-bold text-[var(--color-text)] transition hover:border-[var(--color-primary)]"
+          >
+            <Edit2 className="h-4 w-4" /> Edit / Remove Auctions
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard/add-listing?mode=auction")}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-xs font-bold text-white transition hover:opacity-90"
+          >
+            <CalendarPlus className="h-4 w-4" /> Schedule Auction
+          </button>
+        </div>
       </div>
 
       {gateAuction && (
@@ -157,10 +138,53 @@ export default function AuctioneerLiveConsole({ auctionItems = [], onItemsUpdate
       
       {/* 📋 CAMPAIGNS BLOCK */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <LayoutGrid className="w-4 h-4 text-[var(--color-muted)]" />
-          <h3 className="text-xs font-black tracking-wider uppercase text-[var(--color-muted)]">Scheduled &amp; Live Auctions ({visibleActiveItems.length})</h3>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <LayoutGrid className="w-4 h-4 text-[var(--color-muted)]" />
+            <h3 className="text-xs font-black tracking-wider uppercase text-[var(--color-muted)]">Scheduled &amp; Live Auctions ({visibleActiveItems.length})</h3>
+          </div>
+          <div className="flex w-full gap-2 sm:max-w-lg">
+            <div className="relative min-w-0 flex-1">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-muted)]" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search auctions..."
+                aria-label="Search auctions"
+                className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] py-2.5 pl-10 pr-3 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-primary)]"
+              />
+            </div>
+            <button
+              type="button"
+              aria-expanded={filtersOpen}
+              aria-controls="auction-status-filters"
+              onClick={() => setFiltersOpen((open) => !open)}
+              className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2.5 text-xs font-semibold text-[var(--color-text)]"
+            >
+              <Filter className="h-4 w-4" /> Filter
+              <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
+            </button>
+          </div>
         </div>
+        {filtersOpen && (
+          <div id="auction-status-filters" className="overflow-x-auto pb-1">
+            <div className="flex min-w-max gap-2">
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+                aria-label="Filter auctions by status"
+                className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2.5 text-sm text-[var(--color-text)]"
+              >
+                <option value="">All scheduled and live</option>
+                <option value="SCHEDULED">Scheduled</option>
+                <option value="LIVE">Live</option>
+              </select>
+              <button type="button" onClick={() => { setSearch(""); setStatusFilter(""); }} className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm font-semibold text-[var(--color-muted)]">
+                Clear filters
+              </button>
+            </div>
+          </div>
+        )}
 
         {visibleActiveItems.length === 0 ? (
           <div className="bg-[var(--color-card)] border border-dashed border-[var(--color-border)] rounded-2xl p-8 text-center text-xs text-[var(--color-muted)]">
@@ -196,16 +220,6 @@ export default function AuctioneerLiveConsole({ auctionItems = [], onItemsUpdate
                       <div>Starting Bid: <span className="font-bold text-[var(--color-text)]">MWK {Number(item.startingBid).toLocaleString()}</span></div>
                       <div>Reserve price: <span className="font-bold text-[var(--color-primary)]">MWK {Number(item.reservePrice).toLocaleString()}</span></div>
                     </div>
-                    <label className="flex items-center gap-2 pt-2 text-xs font-semibold text-[var(--color-text)]">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(item.reservePriceDisclosed)}
-                        disabled={isActionLoadingId !== null}
-                        onChange={(event) => handleUpdateAuctionControls(item, { reservePriceDisclosed: event.target.checked })}
-                        className="accent-[var(--color-primary)]"
-                      />
-                      Disclose reserve price to bidders
-                    </label>
                   </div>
 
                   <div className="pt-2 flex flex-col gap-2">
@@ -223,48 +237,14 @@ export default function AuctioneerLiveConsole({ auctionItems = [], onItemsUpdate
                         )}
                       </button>
                     ) : (
-                      <div className="space-y-2 w-full">
-                        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-input)] p-3">
-                          <p className="mb-2 flex items-center gap-1 text-[10px] font-bold uppercase text-[var(--color-muted)]"><Clock3 className="h-3 w-3" /> Extend bidding time</p>
-                          <div className="grid grid-cols-3 gap-2">
-                            {[5, 10, 20].map((seconds) => (
-                              <button
-                                key={seconds}
-                                type="button"
-                                onClick={() => handleUpdateAuctionControls(item, { extendSeconds: seconds })}
-                                disabled={isActionLoadingId !== null}
-                                className="rounded-lg border border-[var(--color-border)] px-2 py-1.5 text-[10px] font-bold text-[var(--color-text)] hover:border-[var(--color-primary)] disabled:opacity-50"
-                              >
-                                +{seconds}s
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 w-full rounded-xl py-2 px-3 flex items-center justify-between border border-emerald-500/20">
-                          <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5 animate-pulse" /> Lobby Live</span>
-                          <span className="text-[10px] text-[var(--color-muted)] font-medium">Bidders Live</span>
-                        </div>
-                        
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleWatchLiveRoom(item)}
-                            disabled={isActionLoadingId !== null}
-                            className="flex-1 text-center px-3 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white text-[11px] font-bold rounded-xl flex items-center justify-center gap-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {isActionLoadingId === item.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Eye className="w-3.5 h-3.5" /> Enter</>}
-                          </button>
-                          
-                          <button
-                            type="button"
-                            onClick={() => handleTerminateLiveSession(item.id)}
-                            disabled={isActionLoadingId !== null}
-                            className="flex-1 text-center px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold rounded-xl flex items-center justify-center gap-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <Power className="w-3.5 h-3.5" /> End
-                          </button>
-                        </div>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleWatchLiveRoom(item)}
+                        disabled={isActionLoadingId !== null}
+                        className="w-full text-center px-3 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white text-[11px] font-bold rounded-xl flex items-center justify-center gap-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isActionLoadingId === item.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Eye className="w-3.5 h-3.5" /> Enter Auction</>}
+                      </button>
                     )}
                   </div>
                 </div>

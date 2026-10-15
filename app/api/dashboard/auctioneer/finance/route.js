@@ -53,7 +53,11 @@ export async function GET() {
 
     const saleTransactions = saleRows.map((row) => ({
       id: `sale-${row.id}`,
-      type: row.kind === "PROPERTY_PURCHASE" ? "Property sale" : "Daily sale",
+      type: ({
+        PROPERTY_PURCHASE: "Property sale",
+        PROPERTY_RENT: "Property rent",
+        DAILY_SALE_PURCHASE: "Daily sale",
+      })[row.kind] || "Other sale",
       title: row.title,
       category: row.category,
       amount: Number(row.amount),
@@ -121,6 +125,7 @@ export async function GET() {
           totalRevenue: transactions.reduce((sum, row) => sum + row.amount, 0),
           dailySalesRevenue: revenueFor("Daily sale"),
           propertySalesRevenue: revenueFor("Property sale"),
+          propertyRentRevenue: revenueFor("Property rent"),
           entryFeeRevenue,
           biddingDepositRevenue,
           auctionAccessRevenue: entryFeeRevenue + biddingDepositRevenue,

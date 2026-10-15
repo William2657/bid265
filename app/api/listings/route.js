@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { auctionItems, bids, dailySales } from "@/lib/db/schema";
-import { desc } from "drizzle-orm";
+import {
+  auctionAccessPayments,
+  auctionItems,
+  auctionRegistrations,
+  auctionSettlements,
+  bids,
+  dailySales,
+} from "@/lib/db/schema";
+import { count, desc, inArray } from "drizzle-orm";
 
 /**
  * GET /api/listings
@@ -46,10 +53,36 @@ export async function GET() {
       orderBy: [desc(auctionItems.createdAt)],
     });
 
+    const auctionRows = properties.filter((item) =>
+      item.asset?.createdById === userId &&
+      item.asset.isListed &&
+      item.asset.listingType === "AUCTION"
+    );
+    const auctionIds = auctionRows.map((item) => item.id);
+    const [bidCounts, paymentCounts, registrationCounts, settlements] = auctionIds.length
+      ? await Promise.all([
+        db.select({ auctionItemId: bids.auctionItemId, total: count() })
+          .from(bids).where(inArray(bids.auctionItemId, auctionIds)).groupBy(bids.auctionItemId),
+        db.select({ auctionItemId: auctionAccessPayments.auctionItemId, total: count() })
+          .from(auctionAccessPayments).where(inArray(auctionAccessPayments.auctionItemId, auctionIds))
+          .groupBy(auctionAccessPayments.auctionItemId),
+        db.select({ auctionItemId: auctionRegistrations.auctionItemId, total: count() })
+          .from(auctionRegistrations).where(inArray(auctionRegistrations.auctionItemId, auctionIds))
+          .groupBy(auctionRegistrations.auctionItemId),
+        db.select({ auctionItemId: auctionSettlements.auctionItemId })
+          .from(auctionSettlements).where(inArray(auctionSettlements.auctionItemId, auctionIds)),
+      ])
+      : [[], [], [], []];
+    const bidCountByAuction = new Map(bidCounts.map((row) => [row.auctionItemId, row.total]));
+    const paymentCountByAuction = new Map(paymentCounts.map((row) => [row.auctionItemId, row.total]));
+    const registrationCountByAuction = new Map(registrationCounts.map((row) => [row.auctionItemId, row.total]));
+    const settledAuctionIds = new Set(settlements.map((row) => row.auctionItemId));
+    const now = new Date();
+
     return NextResponse.json({
       success: true,
       dailySales: dailySaleRows
-        .filter((sale) => sale.asset?.createdById === userId)
+        .filter((sale) => sale.asset?.createdById === userId && sale.asset.isListed)
         .map((sale) => ({
           id: sale.id,
           assetId: sale.asset.id,
@@ -63,8 +96,8 @@ export async function GET() {
           imageUrl: sale.asset.auctionItems?.[0]?.images?.[0]?.url || null,
           createdAt: sale.createdAt.toISOString(),
         })),
-      properties: properties
-        .filter((item) => item.asset?.createdById === userId)
+      auctions: properties
+        .filter((item) => auctionRows.some((auction) => auction.id === item.id))
         .map((item) => ({
           id: item.id,
           assetId: item.assetId,
@@ -80,6 +113,43 @@ export async function GET() {
           reservePrice: Number(item.reservePrice),
           entryFee: Number(item.depositAmount),
           biddingDeposit: Number(item.biddingFee),
+          status: item.status,
+          currentBid: item.bids[0] ? Number(item.bids[0].amount) : null,
+          bidCount: bidCountByAuction.get(item.id) || 0,
+          registeredBidders: registrationCountByAuction.get(item.id) || 0,
+          startTime: item.startTime.toISOString(),
+          endTime: item.endTime.toISOString(),
+          canEdit: item.status === "UPCOMING" &&
+            item.startTime > now &&
+            item.endTime > now &&
+            !bidCountByAuction.has(item.id) &&
+            !paymentCountByAuction.has(item.id) &&
+            !registrationCountByAuction.has(item.id) &&
+            !settledAuctionIds.has(item.id),
+          canArchive: !["ACTIVE", "LIVE"].includes(item.status) &&
+            !item.asset.isSold &&
+            !bidCountByAuction.has(item.id) &&
+            !paymentCountByAuction.has(item.id) &&
+            !registrationCountByAuction.has(item.id) &&
+            !settledAuctionIds.has(item.id),
+          imageUrl: item.images[0]?.url || null,
+          createdAt: item.createdAt.toISOString(),
+        })),
+      properties: properties
+        .filter((item) => item.asset?.createdById === userId && item.asset.isListed && item.asset.salesType === "PROPERTY" && ["SALE", "LEASE"].includes(item.asset.listingType))
+        .map((item) => ({
+          id: item.assetId,
+          auctionItemId: item.id,
+          assetId: item.assetId,
+          title: item.asset.title,
+          description: item.asset.description,
+          category: item.asset.category,
+          clientName: item.asset.clientName || item.asset.location,
+          listingType: item.asset.listingType,
+          isSold: item.asset.isSold,
+          askingPrice: item.asset.salePrice ? Number(item.asset.salePrice) : null,
+          monthlyRent: item.asset.monthlyRent ? Number(item.asset.monthlyRent) : null,
+          rentDueDay: item.asset.rentDueDay,
           status: item.status,
           currentBid: item.bids[0] ? Number(item.bids[0].amount) : null,
           imageUrl: item.images[0]?.url || null,

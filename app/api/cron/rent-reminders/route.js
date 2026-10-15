@@ -36,6 +36,7 @@ export async function GET(request) {
     .where(and(
       eq(assets.listingType, "LEASE"),
       eq(assets.isSold, false),
+      eq(assets.isListed, true),
       eq(assets.rentDueDay, day),
       isNotNull(assets.monthlyRent),
     ));

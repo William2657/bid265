@@ -14,6 +14,8 @@ import {
   Clock,
   ShoppingBag,
   X,
+  Filter,
+  ChevronDown,
 } from "lucide-react";
 import { formatDate } from "@/lib/payments";
 import { fetchUserProfile, initiatePayment, parseName } from "@/lib/payments";
@@ -39,6 +41,7 @@ export default function BidderMarketplace({ initialTab = "daily-sales", initialC
   const [listingType, setListingType] = useState("");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [auctioneers, setAuctioneers] = useState([]);
@@ -201,55 +204,75 @@ export default function BidderMarketplace({ initialTab = "daily-sales", initialC
         </button>
       </div>
 
-      {/* Search bars */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-muted)]" />
-          <input
-            type="text"
-            placeholder={activeTab === "daily-sales" ? "Search goods..." : "Search listings..."}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl pl-10 pr-10 py-2.5 text-sm text-[var(--color-text)] placeholder-[var(--color-muted)] focus:outline-none focus:border-[var(--color-primary)]/40 focus:ring-1 focus:ring-[var(--color-primary)]/20 transition-all"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)] hover:text-[var(--color-text)]"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
+      {/* Search and expandable filters */}
+      <div className="space-y-3">
+        <div className="flex gap-2">
+          <div className="relative min-w-0 flex-1">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-muted)]" />
+            <input
+              type="text"
+              placeholder={activeTab === "daily-sales" ? "Search goods..." : "Search listings..."}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl pl-10 pr-10 py-2.5 text-sm text-[var(--color-text)] placeholder-[var(--color-muted)] focus:outline-none focus:border-[var(--color-primary)]/40 focus:ring-1 focus:ring-[var(--color-primary)]/20 transition-all"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)] hover:text-[var(--color-text)]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            aria-expanded={filtersOpen}
+            aria-controls="marketplace-filters"
+            onClick={() => setFiltersOpen((open) => !open)}
+            className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-2.5 text-sm font-semibold text-[var(--color-text)] hover:border-[var(--color-primary)]/50"
+          >
+            <Filter className="h-4 w-4" />
+            Filters
+            <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
+          </button>
         </div>
-        <div className="relative">
-          <MapPin className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-primary)]" />
-          <input
-            type="text"
-            placeholder="Filter by location"
-            value={locationQuery}
-            onChange={(e) => setLocationQuery(e.target.value)}
-            className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] py-2.5 pl-10 pr-4 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-primary)]"
-          />
-        </div>
-        <select value={category} onChange={(event) => setCategory(event.target.value)} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2.5 text-sm text-[var(--color-text)]">
-          <option value="">All categories</option>
-          {categories.map((itemCategory) => <option key={itemCategory} value={itemCategory}>{itemCategory}</option>)}
-        </select>
-        <select value={auctioneerId} onChange={(event) => setAuctioneerId(event.target.value)} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2.5 text-sm text-[var(--color-text)]">
-          <option value="">All auctioneers</option>
-          {auctioneers.map((auctioneer) => <option key={auctioneer.id} value={auctioneer.id}>{auctioneer.name}</option>)}
-        </select>
-        {activeTab === "properties" && (
-          <select value={listingType} onChange={(event) => setListingType(event.target.value)} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2.5 text-sm text-[var(--color-text)]">
-            <option value="">For sale or lease</option>
-            <option value="SALE">For sale</option>
-            <option value="LEASE">For lease</option>
-          </select>
+        {filtersOpen && (
+          <div id="marketplace-filters" className="overflow-x-auto pb-1">
+            <div className="flex min-w-max flex-nowrap gap-2">
+              <div className="relative w-40 shrink-0">
+                <MapPin className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-primary)]" />
+                <input
+                  type="text"
+                  aria-label="Filter by location"
+                  placeholder="Location"
+                  value={locationQuery}
+                  onChange={(e) => setLocationQuery(e.target.value)}
+                  className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] py-2.5 pl-10 pr-3 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-primary)]"
+                />
+              </div>
+              <select value={category} onChange={(event) => setCategory(event.target.value)} aria-label="Filter by category" className="w-40 shrink-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2.5 text-sm text-[var(--color-text)]">
+                <option value="">All categories</option>
+                {categories.map((itemCategory) => <option key={itemCategory} value={itemCategory}>{itemCategory}</option>)}
+              </select>
+              <select value={auctioneerId} onChange={(event) => setAuctioneerId(event.target.value)} aria-label="Filter by auctioneer" className="w-44 shrink-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2.5 text-sm text-[var(--color-text)]">
+                <option value="">All auctioneers</option>
+                {auctioneers.map((auctioneer) => <option key={auctioneer.id} value={auctioneer.id}>{auctioneer.name}</option>)}
+              </select>
+              {activeTab === "properties" && (
+                <select value={listingType} onChange={(event) => setListingType(event.target.value)} aria-label="Filter by listing type" className="w-40 shrink-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2.5 text-sm text-[var(--color-text)]">
+                  <option value="">Sale or lease</option>
+                  <option value="SALE">For sale</option>
+                  <option value="LEASE">For lease</option>
+                </select>
+              )}
+              <input aria-label="Minimum price" type="number" min="0" placeholder="Min price" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} className="w-32 shrink-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2.5 text-sm text-[var(--color-text)]" />
+              <input aria-label="Maximum price" type="number" min="0" placeholder="Max price" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} className="w-32 shrink-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2.5 text-sm text-[var(--color-text)]" />
+            </div>
+          </div>
         )}
-        <div className="grid grid-cols-2 gap-2">
-          <input aria-label="Minimum price" type="number" min="0" placeholder="Min price" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} className="min-w-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2.5 text-sm text-[var(--color-text)]" />
-          <input aria-label="Maximum price" type="number" min="0" placeholder="Max price" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} className="min-w-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2.5 text-sm text-[var(--color-text)]" />
-        </div>
       </div>
 
       {/* Results */}
@@ -391,6 +414,14 @@ export default function BidderMarketplace({ initialTab = "daily-sales", initialC
                       className="flex items-center gap-1 px-3 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white rounded-xl text-[11px] font-bold disabled:opacity-50"
                     >
                       <Tag className="w-3.5 h-3.5" /> {purchasingId === item.id ? "Starting..." : "Buy Now"}
+                    </button>
+                  ) : activeTab === "properties" && item.listingType === "LEASE" ? (
+                    <button
+                      onClick={() => handlePurchase(item, "PROPERTY_RENT")}
+                      disabled={purchasingId === item.id}
+                      className="flex items-center gap-1 px-3 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white rounded-xl text-[11px] font-bold disabled:opacity-50"
+                    >
+                      <Tag className="w-3.5 h-3.5" /> {purchasingId === item.id ? "Starting..." : "Pay Rent"}
                     </button>
                   ) : null}
                 </div>

@@ -48,6 +48,9 @@ export async function approveAndStartLiveAuction(auctionItemId) {
     if (itemDetails.asset?.listingType !== "AUCTION") {
       return { success: false, error: "Only auction listings can be approved for live bidding." };
     }
+    if (!itemDetails.asset.isListed) {
+      return { success: false, error: "This auction listing has been removed." };
+    }
     if (itemDetails.startTime > new Date() || itemDetails.endTime <= new Date()) {
       return { success: false, error: "This auction can only be started during its scheduled time." };
     }
@@ -105,7 +108,7 @@ export async function getLiveKitToken(roomId, auctionItemId) {
     const item = await db.query.auctionItems.findFirst({
       where: eq(auctionItems.id, cleanId),
       columns: { status: true, liveRoomId: true, startTime: true, endTime: true },
-      with: { asset: { columns: { createdById: true, listingType: true } } },
+      with: { asset: { columns: { createdById: true, listingType: true, isListed: true } } },
     });
     if (!item || (item.status !== "ACTIVE" && item.status !== "LIVE")) {
       return { success: false, error: "This auction is not live." };
@@ -116,6 +119,9 @@ export async function getLiveKitToken(roomId, auctionItemId) {
     }
     if (item.asset?.listingType !== "AUCTION") {
       return { success: false, error: "This listing is not an auction." };
+    }
+    if (!item.asset.isListed) {
+      return { success: false, error: "This auction listing has been removed." };
     }
     if (
       (item.liveRoomId && item.liveRoomId !== roomId) ||
@@ -199,11 +205,17 @@ export async function submitLiveBid(auctionItemId, amount) {
 
     const targetItem = await db.query.auctionItems.findFirst({
       where: eq(auctionItems.id, targetLotId),
-      with: { bids: { orderBy: [desc(bids.amount)], limit: 1 } },
+      with: {
+        asset: { columns: { listingType: true, isListed: true } },
+        bids: { orderBy: [desc(bids.amount)], limit: 1 },
+      },
     });
 
     if (!targetItem) {
       return { success: false, error: "Target inventory lot does not exist." };
+    }
+    if (targetItem.asset?.listingType !== "AUCTION" || !targetItem.asset.isListed) {
+      return { success: false, error: "This auction listing is no longer available." };
     }
 
     if (targetItem.status !== "ACTIVE" && targetItem.status !== "LIVE") {
@@ -270,13 +282,19 @@ export async function updateAuctionControls(auctionItemId, controls) {
 
     const item = await db.query.auctionItems.findFirst({
       where: eq(auctionItems.id, id),
-      with: { asset: { columns: { createdById: true, listingType: true } } },
+      with: { asset: { columns: { createdById: true, listingType: true, isListed: true } } },
     });
     if (!item || item.asset?.listingType !== "AUCTION") {
       return { success: false, error: "Auction item not found." };
     }
+    if (!item.asset.isListed) {
+      return { success: false, error: "This auction listing has been removed." };
+    }
     if (session.user.role !== "ADMIN" && item.asset.createdById !== Number(session.user.id)) {
       return { success: false, error: "You can only manage auctions that you created." };
+    }
+    if (!["ACTIVE", "LIVE"].includes(item.status) || item.endTime <= new Date()) {
+      return { success: false, error: "Auction controls are only available inside an active live auction." };
     }
 
     let update;
@@ -298,12 +316,14 @@ export async function updateAuctionControls(auctionItemId, controls) {
       status: auctionItems.status,
       endTime: auctionItems.endTime,
       reservePriceDisclosed: auctionItems.reservePriceDisclosed,
+      reservePrice: auctionItems.reservePrice,
     });
     let notificationError = null;
     try {
       await pusher.trigger(`auction-room-${id}`, "auction-control-updated", {
         endTime: updated.endTime.toISOString(),
         reservePriceDisclosed: updated.reservePriceDisclosed,
+        reservePrice: updated.reservePriceDisclosed ? Number(updated.reservePrice) : null,
       });
     } catch (error) {
       console.error("[Auction controls broadcast]", error);
@@ -311,7 +331,11 @@ export async function updateAuctionControls(auctionItemId, controls) {
     }
     return {
       success: true,
-      data: { ...updated, endTime: updated.endTime.toISOString() },
+      data: {
+        ...updated,
+        reservePrice: Number(updated.reservePrice),
+        endTime: updated.endTime.toISOString(),
+      },
       ...(notificationError ? { notificationError } : {}),
     };
   } catch (error) {
@@ -356,6 +380,9 @@ export async function getAuctionItemDetails(auctionItemId) {
     }
     if (item.asset?.listingType !== "AUCTION") {
       return { success: false, error: "This listing is not an auction." };
+    }
+    if (!item.asset.isListed) {
+      return { success: false, error: "This auction listing has been removed." };
     }
 
     const isOwner = session.user.role === "AUCTIONEER" &&
@@ -475,7 +502,7 @@ export async function getActiveLiveAuctions() {
     return {
       success: true,
       items: activeItems
-        .filter((item) => item.asset?.listingType === "AUCTION")
+        .filter((item) => item.asset?.listingType === "AUCTION" && item.asset.isListed && !item.asset.isSold)
         .map(item => ({
         id: String(item.id),
         auctionItemId: item.id,
@@ -527,11 +554,14 @@ export async function updateAuctionToLiveDirectly(itemId, computedRoomId) {
     const item = await db.query.auctionItems.findFirst({
       where: eq(auctionItems.id, cleanId),
       columns: { id: true, startTime: true, endTime: true },
-      with: { asset: { columns: { createdById: true, listingType: true } } },
+      with: { asset: { columns: { createdById: true, listingType: true, isListed: true } } },
     });
     if (!item) return { success: false, error: "Auction item not found." };
     if (item.asset?.listingType !== "AUCTION") {
       return { success: false, error: "Only auction listings can be launched." };
+    }
+    if (!item.asset.isListed) {
+      return { success: false, error: "This auction listing has been removed." };
     }
     if (
       session.user.role !== "ADMIN" &&

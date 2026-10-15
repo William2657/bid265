@@ -1,11 +1,10 @@
 "use server";
 
 import { auth } from "../../auth";
-import fs from "fs/promises";
-import path from "path";
 import { db } from "@/lib/db";
-import { assetImages, assets, auctionItems, dailySales } from "@/lib/db/schema";
+import { assets, auctionItems, dailySales } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { storeAssetImage, validateImageFile } from "@/lib/imageStorage";
 
 /**
  * 🛒 DAILY SALES LISTING ENGINE (auctioneer side)
@@ -46,23 +45,7 @@ export async function createDailySaleListing(formData) {
     }
 
     const file = formData.get("assetImageFile");
-    let calculatedImageUrl = "";
-
-    if (file && file.size > 0) {
-      const uploadDir = path.join(process.cwd(), "public", "uploads");
-      await fs.mkdir(uploadDir, { recursive: true });
-
-      const fileExtension = path.extname(file.name);
-      const uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}${fileExtension}`;
-      const filePath = path.join(uploadDir, uniqueFileName);
-
-      const fileBytes = await file.arrayBuffer();
-      const fileBuffer = Buffer.from(fileBytes);
-      await fs.writeFile(filePath, fileBuffer);
-      calculatedImageUrl = `/uploads/${uniqueFileName}`;
-    } else {
-      return { success: false, error: "Please attach a primary display image photograph." };
-    }
+    validateImageFile(file);
 
     const result = await db.transaction(async (tx) => {
       const [newAsset] = await tx.insert(assets).values({
@@ -86,24 +69,18 @@ export async function createDailySaleListing(formData) {
         isAvailable: true,
       }).returning();
 
-      if (calculatedImageUrl) {
-        // Daily sales keep their photo on a lightweight auction item shell
-        // so the existing image pipeline renders them everywhere.
-        const [auctionItem] = await tx.insert(auctionItems).values({
-          assetId: newAsset.id,
-          startingBid: price,
-          reservePrice: price,
-          depositAmount: 0,
-          biddingFee: 0,
-          endTime: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-          status: "CLOSED",
-        }).returning({ id: auctionItems.id });
-        await tx.insert(assetImages).values({
-          auctionItemId: auctionItem.id,
-          url: calculatedImageUrl,
-          isPrimary: true,
-        });
-      }
+      // Daily sales keep their photo on a lightweight auction item shell
+      // so the existing image pipeline renders them everywhere.
+      const [auctionItem] = await tx.insert(auctionItems).values({
+        assetId: newAsset.id,
+        startingBid: price,
+        reservePrice: price,
+        depositAmount: 0,
+        biddingFee: 0,
+        endTime: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        status: "CLOSED",
+      }).returning({ id: auctionItems.id });
+      await storeAssetImage(tx, auctionItem.id, file);
 
       return { asset: newAsset, dailySale };
     });
@@ -138,13 +115,16 @@ export async function toggleDailySaleAvailability(dailySaleId, isAvailable) {
 
     const listing = await db.query.dailySales.findFirst({
       where: eq(dailySales.id, id),
-      with: { asset: { columns: { createdById: true, salesType: true } } },
+      with: { asset: { columns: { createdById: true, salesType: true, isListed: true } } },
     });
-    if (!listing || listing.asset?.salesType !== "DAILY_SALE") {
+    if (!listing || listing.asset?.salesType !== "DAILY_SALE" || !listing.asset.isListed) {
       return { success: false, error: "Daily sale listing not found." };
     }
     if (session.user.role !== "ADMIN" && listing.asset.createdById !== Number(session.user.id)) {
       return { success: false, error: "You can only manage your own daily sale listings." };
+    }
+    if (Boolean(isAvailable) && listing.stockCount < 1) {
+      return { success: false, error: "Add stock by editing this listing before making it available." };
     }
 
     const [updated] = await db.update(dailySales)

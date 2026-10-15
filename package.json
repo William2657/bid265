@@ -9,6 +9,7 @@
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate-uploads": "node scripts/migrate-uploads-to-db.mjs",
     "seed:admin": "node scripts/seed-admin.mjs"
   },
   "dependencies": {
