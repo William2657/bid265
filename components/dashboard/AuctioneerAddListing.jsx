@@ -26,7 +26,9 @@ export default function AuctioneerAddListing({ initialMode = "property" }) {
   const mode = ["daily-sale", "auction"].includes(initialMode) ? initialMode : "property";
   const [listingType, setListingType] = useState("SALE");
   const [isPublishing, setIsPublishing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(initialMode === "daily-sale" ? "OTHER" : "LAND");
+  const [selectedCategory, setSelectedCategory] = useState(
+    initialMode === "daily-sale" ? "OTHER" : initialMode === "auction" ? "VEHICLE" : "LAND"
+  );
   const [customCategory, setCustomCategory] = useState("");
   const [uploadedFile, setUploadedFile] = useState(null);
 
@@ -199,6 +201,14 @@ export default function AuctioneerAddListing({ initialMode = "property" }) {
                   <option value="ELECTRONICS">💻 Tech & Electronics</option>
                   <option value="FURNITURE">🪑 Furniture</option>
                   <option value="OTHER">✨ OTHER / CUSTOM CATEGORY</option>
+                </>
+              ) : mode === "auction" ? (
+                <>
+                  <option value="VEHICLE">🚗 Vehicle</option>
+                  <option value="MOTORBIKE">🏍️ Motorbike</option>
+                  <option value="FURNITURE">🪑 Furniture</option>
+                  <option value="ELECTRONICS">💻 Electronics</option>
+                  <option value="OTHER">✨ Other / Custom</option>
                 </>
               ) : (
                 <>
