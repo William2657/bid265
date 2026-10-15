@@ -22,6 +22,9 @@ import {
   ShoppingBag,
   Home,
   Users,
+  Plus,
+  CircleDollarSign,
+  BadgeCheck,
 } from "lucide-react";
 
 // Component Registry Imports
@@ -35,16 +38,21 @@ import PaymentHistory from "@/components/dashboard/PaymentHistory";
 import AuctioneerFinance from "@/components/dashboard/AuctioneerFinance";
 import Mybids from "./Mybids"
 import AdminAuctioneerManager from "@/components/dashboard/AdminAuctioneerManager";
+import AdminRefundManager from "@/components/dashboard/AdminRefundManager";
 import AuctioneerPasswordChange from "@/components/dashboard/AuctioneerPasswordChange";
 import AdminUserManager from "@/components/dashboard/AdminUserManager";
 
-export default function DashboardLayoutFrame({ user, serializedAuctionItems, isAuctioneer, dashboardStats = null, forceTab = null, addListingInitialMode = "property" }) {
+export default function DashboardLayoutFrame({ user, serializedAuctionItems, isAuctioneer, dashboardStats = null, auctioneerDashboardData = { dailySales: [], properties: [] }, adminUserCounts = { BIDDER: 0, AUCTIONEER: 0, ADMIN: 0 }, recentlyApprovedAuctioneers = [], forceTab = null, addListingInitialMode = "property" }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activeTab, setActiveTab] = useState(forceTab || searchParams.get("tab") || (user?.role === "ADMIN" ? "dashboard" : "live-auctions"));
+  const requestedTab = forceTab || searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(
+    requestedTab === "manage-auctions" ? "live-auctions" : requestedTab || (user?.role === "ADMIN" ? "dashboard" : "live-auctions")
+  );
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [accessPaymentMessage, setAccessPaymentMessage] = useState("");
+  const [adminNotice, setAdminNotice] = useState("");
   const { theme, toggleTheme } = useTheme();
   const isAdmin = user?.role === "ADMIN";
   const isBidder = user?.role === "BIDDER";
@@ -137,7 +145,6 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
     const labels = {
       "dashboard": "Dashboard",
       "live-auctions": isAuctioneer ? "Auctions" : "Live Auction Floor",
-      "manage-auctions": "Manage Auctions",
       "daily-sales": "Daily Sales",
       "properties": "Properties",
       "my-bids": "My Bids",
@@ -146,6 +153,7 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
       "payments": isAuctioneer ? "Payments Received" : "Receipts",
       "reports": "Reports",
       "auctioneers": "Auctioneer Administration",
+      "refunds": "Refund Management",
       "users": "User Management",
       "settings": "Settings"
     };
@@ -155,11 +163,11 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
   const navItems = [
     { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", show: true },
     { id: "live-auctions", icon: Tv, label: isAuctioneer ? "Auctions" : "Live Auction Floor", show: !isAdmin, badge: liveCount },
-    { id: "manage-auctions", icon: Gavel, label: "Manage Auctions", show: isAuctioneer },
     { id: "daily-sales", icon: ShoppingBag, label: "Daily Sales", show: isBidder || isAuctioneer },
     { id: "properties", icon: Home, label: "Properties", show: isBidder || isAuctioneer },
     { id: "my-bids", icon: Gavel, label: "My Bids", show: isBidder },
     { id: "auctioneers", icon: User, label: "Auctioneers", show: isAdmin },
+    { id: "refunds", icon: CircleDollarSign, label: "Refunds", show: isAdmin },
     { id: "users", icon: Users, label: "User Management", show: isAdmin },
     { id: "payments", icon: Wallet, label: isAuctioneer ? "Payments Received" : "Receipts", show: true },
     { id: "reports", icon: BarChart3, label: "Reports", show: isAuctioneer },
@@ -194,23 +202,24 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
         <div className="flex-1 overflow-y-auto px-3 py-6">
           <nav className="space-y-1">
             {navItems.filter(item => item.show).map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-xl transition-all duration-300 relative group ${
-                  activeTab === item.id 
-                    ? "bg-[var(--color-secondary)]/20 text-[var(--color-primary)] border border-[var(--color-primary)]/20" 
-                    : "text-[var(--color-muted)] hover:bg-[var(--color-input)] hover:text-[var(--color-text)]"
-                }`}
-              >
-                <item.icon className={`w-4 h-4 shrink-0 transition-colors ${activeTab === item.id ? "text-[var(--color-primary)]" : "text-[var(--color-muted)] group-hover:text-[var(--color-text)]"}`} />
-                {!isCollapsed && <span className="truncate">{item.label}</span>}
-                {!isCollapsed && item.badge > 0 && (
-                  <span className="absolute right-3 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold animate-pulse">
-                    {item.badge}
-                  </span>
-                )}
-              </button>
+              <React.Fragment key={item.id}>
+                <button
+                  onClick={() => setActiveTab(item.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-xl transition-all duration-300 relative group ${
+                    activeTab === item.id
+                      ? "bg-[var(--color-secondary)]/20 text-[var(--color-primary)] border border-[var(--color-primary)]/20"
+                      : "text-[var(--color-muted)] hover:bg-[var(--color-input)] hover:text-[var(--color-text)]"
+                  }`}
+                >
+                  <item.icon className={`w-4 h-4 shrink-0 transition-colors ${activeTab === item.id ? "text-[var(--color-primary)]" : "text-[var(--color-muted)] group-hover:text-[var(--color-text)]"}`} />
+                  {!isCollapsed && <span className="truncate">{item.label}</span>}
+                  {!isCollapsed && item.badge > 0 && (
+                    <span className="absolute right-3 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold animate-pulse">
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              </React.Fragment>
             ))}
           </nav>
         </div>
@@ -352,22 +361,75 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
                 {accessPaymentMessage}
               </p>
             )}
+            {adminNotice && isAdmin && (
+              <p className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-500" role="status">{adminNotice}</p>
+            )}
 
             {/* Dashboard Overview */}
             {activeTab === "dashboard" && (
               <div className="space-y-6">
                 {isAdmin ? (
-                  <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-6">
-                    <h2 className="text-lg font-bold text-[var(--color-text)]">Administrator dashboard</h2>
-                    <p className="mt-2 text-sm text-[var(--color-muted)]">
-                      Register verified auctioneers and review pending bidder deposit refunds.
-                    </p>
-                    <button type="button" onClick={() => setActiveTab("auctioneers")} className="mt-4 rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-bold text-white">
-                      Manage auctioneers and refunds
-                    </button>
-                    <button type="button" onClick={() => setActiveTab("users")} className="ml-3 mt-4 rounded-xl border border-[var(--color-primary)] px-4 py-2.5 text-sm font-bold text-[var(--color-primary)]">
-                      View and manage all users
-                    </button>
+                  <div className="space-y-6">
+                    <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-6">
+                      <div>
+                        <h2 className="text-lg font-bold text-[var(--color-text)]">Administrator dashboard</h2>
+                        <p className="mt-2 text-sm text-[var(--color-muted)]">User summaries and common administration actions.</p>
+                      </div>
+                      <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                        {[
+                          ["All accounts", adminUserCounts.BIDDER + adminUserCounts.AUCTIONEER + adminUserCounts.ADMIN],
+                          ["Bidders", adminUserCounts.BIDDER],
+                          ["Auctioneers", adminUserCounts.AUCTIONEER],
+                          ["Administrators", adminUserCounts.ADMIN],
+                        ].map(([label, value]) => (
+                          <article key={label} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-input)] p-4">
+                            <p className="text-xs font-semibold text-[var(--color-muted)]">{label}</p>
+                            <p className="mt-1 text-2xl font-black text-[var(--color-primary)]">{value}</p>
+                          </article>
+                        ))}
+                      </div>
+                    </section>
+                    <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-6">
+                      <h3 className="text-sm font-bold text-[var(--color-text)]">Quick actions</h3>
+                      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                        {[
+                          { label: "Manage auctioneers", tab: "auctioneers", icon: User, color: "text-blue-500", bg: "bg-blue-500/10" },
+                          { label: "Manage refunds", tab: "refunds", icon: CircleDollarSign, color: "text-amber-500", bg: "bg-amber-500/10" },
+                          { label: "Manage users", tab: "users", icon: Users, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+                          { label: "View payments", tab: "payments", icon: Wallet, color: "text-violet-500", bg: "bg-violet-500/10" },
+                        ].map((action) => (
+                          <button key={action.tab} type="button" onClick={() => setActiveTab(action.tab)} className="group flex items-center gap-3 rounded-xl p-3 text-left transition hover:bg-[var(--color-input)]">
+                            <span className={`rounded-lg p-2 ${action.bg} transition-transform group-hover:scale-110`}>
+                              <action.icon className={`h-4 w-4 ${action.color}`} />
+                            </span>
+                            <span className="text-sm font-medium text-[var(--color-text)] group-hover:text-[var(--color-primary)]">{action.label}</span>
+                            <ChevronRight className="ml-auto h-4 w-4 text-[var(--color-muted)] transition-transform group-hover:translate-x-0.5" />
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                    <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-6">
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-bold text-[var(--color-text)]">Recently approved auctioneers</h3>
+                          <p className="mt-1 text-xs text-[var(--color-muted)]">Latest verified auctioneer accounts</p>
+                        </div>
+                        <BadgeCheck className="h-5 w-5 text-emerald-500" />
+                      </div>
+                      {recentlyApprovedAuctioneers.length ? (
+                        <div className="space-y-2">
+                          {recentlyApprovedAuctioneers.map((auctioneer) => (
+                            <article key={auctioneer.id} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-input)] p-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-[var(--color-text)]">{auctioneer.name}</p>
+                                <p className="mt-1 truncate text-xs text-[var(--color-muted)]">{auctioneer.businessName || "Auctioneer account"}</p>
+                              </div>
+                              <span className="shrink-0 text-xs text-[var(--color-muted)]">{new Date(auctioneer.createdAt).toLocaleDateString()}</span>
+                            </article>
+                          ))}
+                        </div>
+                      ) : <p className="text-sm text-[var(--color-muted)]">No verified auctioneers have been registered yet.</p>}
+                    </section>
                   </div>
                 ) : isAuctioneer ? (
                   <div className="bg-[var(--color-card)] p-6 rounded-2xl border border-[var(--color-border)] shadow-sm space-y-4">
@@ -397,6 +459,91 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
                         </div>
                       ))}
                     </div>
+                    <section className="border-t border-[var(--color-border)] pt-5">
+                      <h3 className="text-sm font-bold text-[var(--color-text)]">Quick actions</h3>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        <button type="button" onClick={() => setActiveTab("add-listing")} className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-bold text-white">
+                          <Plus className="h-4 w-4" /> Add listing
+                        </button>
+                        {[
+                          { label: "Manage auctions", tab: "live-auctions", icon: Gavel, color: "text-blue-500", bg: "bg-blue-500/10" },
+                          { label: "Manage daily sales", tab: "daily-sales", icon: ShoppingBag, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+                          { label: "Payments received", tab: "payments", icon: Wallet, color: "text-violet-500", bg: "bg-violet-500/10" },
+                          { label: "Properties", tab: "properties", icon: Home, color: "text-amber-500", bg: "bg-amber-500/10" },
+                        ].map((action) => (
+                          <button key={action.tab} type="button" onClick={() => setActiveTab(action.tab)} className="group flex items-center gap-3 rounded-xl p-3 text-left transition hover:bg-[var(--color-input)]">
+                            <span className={`rounded-lg p-2 ${action.bg} transition-transform group-hover:scale-110`}>
+                              <action.icon className={`h-4 w-4 ${action.color}`} />
+                            </span>
+                            <span className="text-sm font-medium text-[var(--color-text)] group-hover:text-[var(--color-primary)]">{action.label}</span>
+                            <ChevronRight className="ml-auto h-4 w-4 text-[var(--color-muted)] transition-transform group-hover:translate-x-0.5" />
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                    <div className="grid gap-5 border-t border-[var(--color-border)] pt-5 lg:grid-cols-2">
+                      <section>
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <h3 className="text-sm font-bold text-[var(--color-text)]">Recent auction listings</h3>
+                          <button type="button" onClick={() => setActiveTab("live-auctions")} className="text-xs font-bold text-[var(--color-primary)]">View all</button>
+                        </div>
+                        {serializedAuctionItems.length ? (
+                          <div className="space-y-2">
+                            {serializedAuctionItems.slice(0, 5).map((item) => (
+                              <article key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-input)] p-3">
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-semibold text-[var(--color-text)]">{item.asset.title}</p>
+                                  <p className="mt-1 text-xs text-[var(--color-muted)]">{item.asset.location || "Location not provided"}</p>
+                                </div>
+                                <span className="shrink-0 rounded-full bg-[var(--color-primary)]/10 px-2.5 py-1 text-[10px] font-bold text-[var(--color-primary)]">{item.status}</span>
+                              </article>
+                            ))}
+                          </div>
+                        ) : <p className="rounded-xl border border-dashed border-[var(--color-border)] p-4 text-sm text-[var(--color-muted)]">No auction listings yet.</p>}
+                      </section>
+                      <section>
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <h3 className="text-sm font-bold text-[var(--color-text)]">Recent daily sales</h3>
+                          <button type="button" onClick={() => setActiveTab("daily-sales")} className="text-xs font-bold text-[var(--color-primary)]">View all</button>
+                        </div>
+                        {auctioneerDashboardData.dailySales.length ? (
+                          <div className="space-y-2">
+                            {auctioneerDashboardData.dailySales.map((listing) => (
+                              <article key={listing.id} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-input)] p-3">
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-semibold text-[var(--color-text)]">{listing.title}</p>
+                                  <p className="mt-1 text-xs text-[var(--color-muted)]">{listing.location} · MWK {listing.price.toLocaleString()}</p>
+                                </div>
+                                <span className="shrink-0 rounded-full bg-[var(--color-primary)]/10 px-2.5 py-1 text-[10px] font-bold text-[var(--color-primary)]">
+                                  {listing.stockCount} {listing.stockCount === 1 ? "unit" : "units"} left
+                                </span>
+                              </article>
+                            ))}
+                          </div>
+                        ) : <p className="rounded-xl border border-dashed border-[var(--color-border)] p-4 text-sm text-[var(--color-muted)]">No daily sale listings yet.</p>}
+                      </section>
+                      <section className="lg:col-span-2">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <h3 className="text-sm font-bold text-[var(--color-text)]">Recent property listings</h3>
+                          <button type="button" onClick={() => setActiveTab("properties")} className="text-xs font-bold text-[var(--color-primary)]">View all</button>
+                        </div>
+                        {auctioneerDashboardData.properties.length ? (
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            {auctioneerDashboardData.properties.map((property) => (
+                              <article key={property.id} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-input)] p-3">
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-semibold text-[var(--color-text)]">{property.title}</p>
+                                  <p className="mt-1 text-xs text-[var(--color-muted)]">{property.location} · {property.listingType === "LEASE" ? `MWK ${property.monthlyRent?.toLocaleString() || 0}/month` : `MWK ${property.salePrice?.toLocaleString() || 0}`}</p>
+                                </div>
+                                <span className="shrink-0 rounded-full bg-[var(--color-primary)]/10 px-2.5 py-1 text-[10px] font-bold text-[var(--color-primary)]">
+                                  {property.isSold ? "Sold" : property.listingType === "LEASE" ? "For lease" : "For sale"}
+                                </span>
+                              </article>
+                            ))}
+                          </div>
+                        ) : <p className="rounded-xl border border-dashed border-[var(--color-border)] p-4 text-sm text-[var(--color-muted)]">No recent property listings yet.</p>}
+                      </section>
+                    </div>
                   </div>
                 ) : (
                   <BidderDashboard />
@@ -404,19 +551,19 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
               </div>
             )}
 
-            {/* Manage Auctions (Auctioneer) / Live Auction Floor (Bidder) */}
+            {/* Auctions (Auctioneer) / Live Auction Floor (Bidder) */}
             {activeTab === "live-auctions" && !isAdmin && (
               isAuctioneer ? (
-                <AuctioneerLiveConsole 
-                  auctionItems={serializedAuctionItems} 
-                  onItemsUpdate={(updated) => console.log("Broadcaster sync: ", updated.length)}
-                />
+                <div className="space-y-6">
+                  <AuctioneerLiveConsole
+                    auctionItems={serializedAuctionItems}
+                    onItemsUpdate={(updated) => console.log("Broadcaster sync: ", updated.length)}
+                  />
+                  <AuctioneerManageAssets initialTab="auctions" />
+                </div>
               ) : (
                 <BidderLiveConsole auctionItems={serializedAuctionItems} />
               )
-            )}
-            {activeTab === "manage-auctions" && isAuctioneer && (
-              <AuctioneerManageAssets initialTab="auctions" />
             )}
 
             {/* Daily sales */}
@@ -462,8 +609,13 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
             )}
 
             {activeTab === "auctioneers" && isAdmin && (
-              <AdminAuctioneerManager />
+              <AdminAuctioneerManager onRegistrationComplete={(message) => {
+                setAdminNotice(message);
+                setActiveTab("users");
+              }} />
             )}
+
+            {activeTab === "refunds" && isAdmin && <AdminRefundManager />}
 
             {activeTab === "users" && isAdmin && (
               <AdminUserManager />
@@ -533,11 +685,16 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
         >
           <Tv className="w-5 h-5 mb-0.5" />
           <span className="text-[10px] tracking-tight">
-            {isAuctioneer ? "Manage" : "Bids"}
+            {isAuctioneer ? "Auctions" : "Bids"}
           </span>
           {liveCount > 0 && (
             <span className="absolute top-2.5 right-6 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
           )}
+        </button>}
+
+        {isAdmin && <button onClick={() => setActiveTab("refunds")} className={`flex flex-col items-center justify-center flex-1 h-full py-2 ${activeTab === "refunds" ? "text-[var(--color-primary)]" : "text-[var(--color-muted)]"}`}>
+          <CircleDollarSign className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] tracking-tight">Refunds</span>
         </button>}
 
         {isAdmin && (

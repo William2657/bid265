@@ -30,7 +30,7 @@ const detailFields = [
   ["addressLine2", "Address line 2", false],
   ["district", "District / city", false],
   ["businessName", "Business / agency", false],
-  ["nationalId", "National ID / registration number", false],
+  ["nationalId", "Certificate number", false],
 ];
 
 async function fetchUsers({ query, role, page }) {
@@ -98,7 +98,7 @@ export default function AdminUserManager() {
       const response = await fetch("/api/admin/users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingUser),
+        body: JSON.stringify({ ...editingUser, userId: editingUser.id }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Could not update account.");
@@ -125,26 +125,10 @@ export default function AdminUserManager() {
           <Users className="h-5 w-5 text-[var(--color-primary)]" /> User management
         </h2>
         <p className="mt-1 text-sm text-[var(--color-muted)]">
-          Review every bidder, auctioneer, and administrator. Update account details, roles, and verification status.
+          Review all accounts and update account details and roles. Auctioneer verification is managed here; bidder verification is not required.
           Passwords are never displayed here.
         </p>
       </header>
-
-      {data?.counts && (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {[
-            ["All accounts", Object.values(data.counts).reduce((total, value) => total + value, 0)],
-            ["Bidders", data.counts.BIDDER],
-            ["Auctioneers", data.counts.AUCTIONEER],
-            ["Administrators", data.counts.ADMIN],
-          ].map(([label, value]) => (
-            <article key={label} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
-              <p className="text-xs font-semibold text-[var(--color-muted)]">{label}</p>
-              <p className="mt-1 text-2xl font-black text-[var(--color-primary)]">{value}</p>
-            </article>
-          ))}
-        </div>
-      )}
 
       {error && <p className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400" role="alert">{error}</p>}
       {notice && <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-400" role="status">{notice}</p>}
@@ -179,22 +163,34 @@ export default function AdminUserManager() {
               <select
                 value={editingUser.role}
                 disabled={editingUser.id === currentUserId}
-                onChange={(event) => updateField("role", event.target.value)}
+                onChange={(event) => {
+                  const role = event.target.value;
+                  setEditingUser((current) => current
+                    ? {
+                      ...current,
+                      role,
+                      isVerified: role === "AUCTIONEER"
+                        ? current.role === "AUCTIONEER" && current.isVerified
+                        : true,
+                    }
+                    : current);
+                }}
                 className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-input)] px-3 py-2.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-primary)] disabled:opacity-60"
               >
                 {roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
               </select>
             </label>
-            <label className="flex items-center gap-2 self-end rounded-lg border border-[var(--color-border)] bg-[var(--color-input)] px-3 py-2.5 text-sm text-[var(--color-text)]">
-              <input
-                type="checkbox"
-                checked={Boolean(editingUser.isVerified)}
-                disabled={editingUser.id === currentUserId}
-                onChange={(event) => updateField("isVerified", event.target.checked)}
-                className="accent-[var(--color-primary)]"
-              />
-              Verified account
-            </label>
+            {editingUser.role === "AUCTIONEER" && (
+              <label className="flex items-center gap-2 self-end rounded-lg border border-[var(--color-border)] bg-[var(--color-input)] px-3 py-2.5 text-sm text-[var(--color-text)]">
+                <input
+                  type="checkbox"
+                  checked={Boolean(editingUser.isVerified)}
+                  onChange={(event) => updateField("isVerified", event.target.checked)}
+                  className="accent-[var(--color-primary)]"
+                />
+                Verified auctioneer
+              </label>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-secondary)] px-4 py-2.5 text-xs font-bold text-white hover:bg-[var(--color-primary)] disabled:opacity-60">
@@ -237,9 +233,11 @@ export default function AdminUserManager() {
                   <div className="flex flex-wrap items-center gap-2">
                     <strong className="text-sm text-[var(--color-text)]">{user.name}</strong>
                     <span className="rounded-full bg-[var(--color-secondary)]/15 px-2 py-0.5 text-[10px] font-bold text-[var(--color-primary)]">{user.role}</span>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${user.isVerified ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"}`}>
-                      {user.isVerified ? "Verified" : "Unverified"}
-                    </span>
+                    {user.role === "AUCTIONEER" ? (
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${user.isVerified ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"}`}>
+                        {user.isVerified ? "Verified" : "Unverified"}
+                      </span>
+                    ) : null}
                   </div>
                   <p className="break-all text-xs text-[var(--color-muted)]">{user.email}{user.phoneNumber ? ` · ${user.phoneNumber}` : ""}</p>
                   <p className="text-xs text-[var(--color-muted)]">

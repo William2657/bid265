@@ -38,6 +38,7 @@ export async function POST(req) {
       password: hashedPassword,
       role: "BIDDER",
       phoneNumber: phone.trim(),
+      isVerified: true,
     }).returning({ id: users.id });
 
     return NextResponse.json({ success: true, userId: newUser.id }, { status: 201 });

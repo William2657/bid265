@@ -51,6 +51,9 @@ export async function approveAndStartLiveAuction(auctionItemId) {
     if (!itemDetails.asset.isListed) {
       return { success: false, error: "This auction listing has been removed." };
     }
+    if (itemDetails.status !== "UPCOMING") {
+      return { success: false, error: "Only a scheduled auction can be started." };
+    }
     if (itemDetails.startTime > new Date() || itemDetails.endTime <= new Date()) {
       return { success: false, error: "This auction can only be started during its scheduled time." };
     }
@@ -60,9 +63,12 @@ export async function approveAndStartLiveAuction(auctionItemId) {
     const [updatedItem] = await db.update(auctionItems).set({
         status: "ACTIVE",              
         liveRoomId: generatedRoomId,
-      }).where(eq(auctionItems.id, cleanId)).returning();
+      }).where(and(
+        eq(auctionItems.id, cleanId),
+        eq(auctionItems.status, "UPCOMING"),
+      )).returning();
 
-    if (!updatedItem) return { success: false, error: "Auction item not found." };
+    if (!updatedItem) return { success: false, error: "This auction is no longer scheduled." };
 
     const primaryImageUrl = itemDetails.images[0]?.url || "/placeholder-property.jpg";
 
@@ -553,7 +559,7 @@ export async function updateAuctionToLiveDirectly(itemId, computedRoomId) {
 
     const item = await db.query.auctionItems.findFirst({
       where: eq(auctionItems.id, cleanId),
-      columns: { id: true, startTime: true, endTime: true },
+      columns: { id: true, startTime: true, endTime: true, status: true, liveRoomId: true },
       with: { asset: { columns: { createdById: true, listingType: true, isListed: true } } },
     });
     if (!item) return { success: false, error: "Auction item not found." };
@@ -569,6 +575,9 @@ export async function updateAuctionToLiveDirectly(itemId, computedRoomId) {
     ) {
       return { success: false, error: "You can only launch auctions that you created." };
     }
+    if (item.status !== "UPCOMING" || item.liveRoomId) {
+      return { success: false, error: "Only a scheduled auction can be started." };
+    }
     const now = new Date();
     if (item.startTime > now || item.endTime <= now) {
       return { success: false, error: "This auction can only be started during its scheduled time." };
@@ -577,9 +586,12 @@ export async function updateAuctionToLiveDirectly(itemId, computedRoomId) {
     const [record] = await db.update(auctionItems).set({
         status: "ACTIVE", 
         liveRoomId: computedRoomId,
-      }).where(eq(auctionItems.id, cleanId)).returning();
+      }).where(and(
+        eq(auctionItems.id, cleanId),
+        eq(auctionItems.status, "UPCOMING"),
+      )).returning();
 
-    if (!record) return { success: false, error: "Auction item not found." };
+    if (!record) return { success: false, error: "This auction is no longer scheduled." };
 
     return { success: true, data: JSON.parse(JSON.stringify(record)) };
   } catch (err) {
@@ -605,17 +617,24 @@ export async function closeLiveAuctionDirectly(itemId) {
 
     const item = await db.query.auctionItems.findFirst({
       where: eq(auctionItems.id, cleanId),
-      with: { asset: { columns: { createdById: true, listingType: true } } },
+      columns: { id: true, status: true },
+      with: { asset: { columns: { createdById: true, listingType: true, isListed: true } } },
     });
     if (!item) return { success: false, error: "Auction item not found." };
     if (item.asset?.listingType !== "AUCTION") {
       return { success: false, error: "Only auction listings can be closed." };
+    }
+    if (!item.asset.isListed) {
+      return { success: false, error: "This auction listing has been removed." };
     }
     if (
       session.user.role !== "ADMIN" &&
       item.asset.createdById !== Number(session.user.id)
     ) {
       return { success: false, error: "You can only close auctions that you created." };
+    }
+    if (!["ACTIVE", "LIVE"].includes(item.status)) {
+      return { success: false, error: "Only a live auction can be closed." };
     }
 
     const settlement = await settleAuction(cleanId);

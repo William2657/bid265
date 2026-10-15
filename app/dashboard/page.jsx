@@ -1,7 +1,7 @@
 import { auth } from "../../auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { assets, auctionItems, auctionSettlements, bids, sales } from "@/lib/db/schema";
+import { assets, auctionItems, auctionSettlements, bids, dailySales, sales, users } from "@/lib/db/schema";
 import { and, count, desc, eq, inArray, sum } from "drizzle-orm";
 import DashboardLayoutFrame from "@/components/dashboard/DashboardLayoutFrame";
 
@@ -22,6 +22,9 @@ export default async function DashboardPage() {
   const isAuctioneer = user.role === "AUCTIONEER";
   let serializedAuctionItems = [];
   let dashboardStats = null;
+  let auctioneerDashboardData = { dailySales: [], properties: [] };
+  let adminUserCounts = { BIDDER: 0, AUCTIONEER: 0, ADMIN: 0 };
+  let recentlyApprovedAuctioneers = [];
   
   if (isAuctioneer) {
     const rawAuctionItems = await db.select({
@@ -94,6 +97,76 @@ export default async function DashboardPage() {
         ? Math.round((settlements.filter((settlement) => settlement.winnerId !== null).length / settlements.length) * 100)
         : 0,
     };
+
+    const [dailySaleRows, propertyRows] = await Promise.all([
+      db.select({
+        id: dailySales.id,
+        title: assets.title,
+        description: assets.description,
+        location: assets.location,
+        category: assets.category,
+        price: dailySales.price,
+        stockCount: dailySales.stockCount,
+        isAvailable: dailySales.isAvailable,
+      }).from(dailySales)
+        .innerJoin(assets, eq(dailySales.assetId, assets.id))
+        .where(and(eq(assets.createdById, user.id), eq(assets.isListed, true)))
+        .orderBy(desc(dailySales.createdAt))
+        .limit(5),
+      db.select({
+        id: assets.id,
+        title: assets.title,
+        location: assets.location,
+        listingType: assets.listingType,
+        salePrice: assets.salePrice,
+        monthlyRent: assets.monthlyRent,
+        isSold: assets.isSold,
+      }).from(assets)
+        .where(and(
+          eq(assets.createdById, user.id),
+          eq(assets.salesType, "PROPERTY"),
+          inArray(assets.listingType, ["SALE", "LEASE"]),
+          eq(assets.isListed, true),
+        ))
+        .orderBy(desc(assets.createdAt))
+        .limit(5),
+    ]);
+
+    auctioneerDashboardData = {
+      dailySales: dailySaleRows.map((listing) => ({
+        ...listing,
+        price: Number(listing.price),
+      })),
+      properties: propertyRows.map((listing) => ({
+        ...listing,
+        salePrice: listing.salePrice ? Number(listing.salePrice) : null,
+        monthlyRent: listing.monthlyRent ? Number(listing.monthlyRent) : null,
+      })),
+    };
+  } else if (user.role === "ADMIN") {
+    const [roleTotals, recentAuctioneers] = await Promise.all([
+      db.select({ role: users.role, total: count() })
+        .from(users)
+        .groupBy(users.role),
+      db.select({
+        id: users.id,
+        name: users.name,
+        businessName: users.businessName,
+        createdAt: users.createdAt,
+      }).from(users)
+        .where(and(eq(users.role, "AUCTIONEER"), eq(users.isVerified, true)))
+        .orderBy(desc(users.createdAt))
+        .limit(5),
+    ]);
+    adminUserCounts = {
+      BIDDER: roleTotals.find((entry) => entry.role === "BIDDER")?.total || 0,
+      AUCTIONEER: roleTotals.find((entry) => entry.role === "AUCTIONEER")?.total || 0,
+      ADMIN: roleTotals.find((entry) => entry.role === "ADMIN")?.total || 0,
+    };
+    recentlyApprovedAuctioneers = recentAuctioneers.map((auctioneer) => ({
+      ...auctioneer,
+      createdAt: auctioneer.createdAt.toISOString(),
+    }));
   }
 
   return (
@@ -102,6 +175,9 @@ export default async function DashboardPage() {
       serializedAuctionItems={serializedAuctionItems} 
       isAuctioneer={isAuctioneer} 
       dashboardStats={dashboardStats}
+      auctioneerDashboardData={auctioneerDashboardData}
+      adminUserCounts={adminUserCounts}
+      recentlyApprovedAuctioneers={recentlyApprovedAuctioneers}
     />
   );
 }

@@ -298,7 +298,7 @@ function SearchBar() {
 // ═══════════════════════════════════════════════════════════════════
 
 type LandingCategoryTab = "daily-sales" | "properties";
-type LandingCategory = { name: string; count: number };
+type LandingCategory = { name: string; count: number; imageUrl: string };
 type LandingAuction = {
   id: number;
   title: string;
@@ -312,6 +312,21 @@ type LandingAuction = {
   endTime: string;
 };
 
+const landingCategoryFallbackImages: Record<string, string> = {
+  VEHICLE: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=640&h=360&fit=crop",
+  ELECTRONICS: "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=640&h=360&fit=crop",
+  FURNITURE: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=640&h=360&fit=crop",
+  LAND: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=640&h=360&fit=crop",
+  COMMERCIAL_BUILDING: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=640&h=360&fit=crop",
+  RESIDENTIAL_BUILDING: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=640&h=360&fit=crop",
+};
+
+function getCategoryFallbackImage(category: string, tab: LandingCategoryTab) {
+  return landingCategoryFallbackImages[category.toUpperCase()] || (tab === "properties"
+    ? "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=640&h=360&fit=crop"
+    : "https://images.unsplash.com/photo-1542838132-92c53300491e?w=640&h=360&fit=crop");
+}
+
 function useLandingCategories(tab: LandingCategoryTab) {
   const [categories, setCategories] = useState<LandingCategory[]>([]);
   const [error, setError] = useState("");
@@ -321,15 +336,22 @@ function useLandingCategories(tab: LandingCategoryTab) {
     let current = true;
     fetch(`/api/marketplace?tab=${tab}`)
       .then(async (response) => {
-        const data: { error?: string; items?: Array<{ category?: string | null }>; categories?: string[] } = await response.json();
+        const data: { error?: string; items?: Array<{ category?: string | null; imageUrl?: string | null }>; categories?: string[] } = await response.json();
         if (!response.ok) throw new Error(data.error || "Could not load categories.");
         const counts = new Map();
+        const images = new Map<string, string>();
         for (const item of data.items || []) {
-          counts.set(item.category || "Other", (counts.get(item.category || "Other") || 0) + 1);
+          const category = item.category || "Other";
+          counts.set(category, (counts.get(category) || 0) + 1);
+          if (item.imageUrl && !images.has(category)) images.set(category, item.imageUrl);
         }
         if (current) {
           setError("");
-          setCategories((data.categories || []).map((name) => ({ name, count: counts.get(name) || 0 })));
+          setCategories((data.categories || []).map((name) => ({
+            name,
+            count: counts.get(name) || 0,
+            imageUrl: images.get(name) || getCategoryFallbackImage(name, tab),
+          })));
         }
       })
       .catch((loadError) => {
@@ -367,13 +389,22 @@ function CategoryBrowseGrid({
     <Link
       key={category.name}
       href={`/marketplace?tab=${tab}&category=${encodeURIComponent(category.name)}`}
-      className={`group flex min-h-36 flex-col justify-between rounded-2xl border border-[#58718B]/40 bg-[#10243A]/80 p-5 transition-all hover:-translate-y-1 hover:border-[#60A5FA]/60 hover:bg-[#1E3A5F] ${inView ? "opacity-100" : "opacity-0"}`}
+      className={`group overflow-hidden rounded-2xl border border-[#58718B]/40 bg-[#10243A]/80 transition-all hover:-translate-y-1 hover:border-[#60A5FA]/60 hover:bg-[#1E3A5F] ${inView ? "opacity-100" : "opacity-0"}`}
       style={{ transitionDelay: `${index * 70}ms` }}
     >
-      <span className="text-base font-bold text-white group-hover:text-[#60A5FA]">{category.name}</span>
-      <span className="flex items-center justify-between text-sm text-[#D0DDDF]">
-        {category.count} listings <ArrowRightIcon />
-      </span>
+      <img
+        src={category.imageUrl}
+        alt={`${category.name} category`}
+        className="h-32 w-full object-cover transition-transform duration-300 group-hover:scale-105"
+        loading="lazy"
+      />
+      <div className="flex items-center justify-between gap-3 p-4">
+        <div>
+          <span className="text-base font-bold text-white group-hover:text-[#60A5FA]">{category.name}</span>
+          <span className="mt-1 block text-sm text-[#D0DDDF]">{category.count} listings</span>
+        </div>
+        <ArrowRightIcon />
+      </div>
     </Link>
   ));
 }

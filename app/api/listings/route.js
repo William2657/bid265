@@ -69,15 +69,17 @@ export async function GET() {
         db.select({ auctionItemId: auctionRegistrations.auctionItemId, total: count() })
           .from(auctionRegistrations).where(inArray(auctionRegistrations.auctionItemId, auctionIds))
           .groupBy(auctionRegistrations.auctionItemId),
-        db.select({ auctionItemId: auctionSettlements.auctionItemId })
+        db.select({
+          auctionItemId: auctionSettlements.auctionItemId,
+          winnerId: auctionSettlements.winnerId,
+        })
           .from(auctionSettlements).where(inArray(auctionSettlements.auctionItemId, auctionIds)),
       ])
       : [[], [], [], []];
     const bidCountByAuction = new Map(bidCounts.map((row) => [row.auctionItemId, row.total]));
     const paymentCountByAuction = new Map(paymentCounts.map((row) => [row.auctionItemId, row.total]));
     const registrationCountByAuction = new Map(registrationCounts.map((row) => [row.auctionItemId, row.total]));
-    const settledAuctionIds = new Set(settlements.map((row) => row.auctionItemId));
-    const now = new Date();
+    const settlementByAuction = new Map(settlements.map((row) => [row.auctionItemId, row]));
 
     return NextResponse.json({
       success: true,
@@ -120,18 +122,20 @@ export async function GET() {
           startTime: item.startTime.toISOString(),
           endTime: item.endTime.toISOString(),
           canEdit: item.status === "UPCOMING" &&
-            item.startTime > now &&
-            item.endTime > now &&
             !bidCountByAuction.has(item.id) &&
             !paymentCountByAuction.has(item.id) &&
             !registrationCountByAuction.has(item.id) &&
-            !settledAuctionIds.has(item.id),
+            !settlementByAuction.has(item.id),
+          canReuse: item.status === "CLOSED" &&
+            !item.asset.isSold &&
+            settlementByAuction.has(item.id) &&
+            settlementByAuction.get(item.id).winnerId === null,
           canArchive: !["ACTIVE", "LIVE"].includes(item.status) &&
             !item.asset.isSold &&
             !bidCountByAuction.has(item.id) &&
             !paymentCountByAuction.has(item.id) &&
             !registrationCountByAuction.has(item.id) &&
-            !settledAuctionIds.has(item.id),
+            !settlementByAuction.has(item.id),
           imageUrl: item.images[0]?.url || null,
           createdAt: item.createdAt.toISOString(),
         })),

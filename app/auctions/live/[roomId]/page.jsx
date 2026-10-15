@@ -44,6 +44,7 @@ export default function LiveRoomPage({ params }) {
   const [highestBid, setHighestBid] = useState(0);
   const [timeLeft, setTimeLeft] = useState("");
   const [isAuctionClosed, setIsAuctionClosed] = useState(false);
+  const [isSettled, setIsSettled] = useState(false);
   const [isUpdatingControls, setIsUpdatingControls] = useState(false);
   const [controlError, setControlError] = useState("");
 
@@ -58,6 +59,8 @@ export default function LiveRoomPage({ params }) {
         const res = await getAuctionItemDetails(auctionItemId);
         if (res.success) {
           setAuctionItem(res.data);
+          setIsSettled(res.data.status === "CLOSED");
+          if (res.data.status === "CLOSED") setIsAuctionClosed(true);
           setBids(res.data.bids || []);
           setHighestBid(res.data.currentHighestBid || Number(res.data.startingBid));
           setParticipants(res.data.participantCount || 0);
@@ -133,6 +136,7 @@ export default function LiveRoomPage({ params }) {
     });
     channel.bind("auction-closed", () => {
       setIsAuctionClosed(true);
+      setIsSettled(true);
       setTimeLeft("00:00:00");
     });
 
@@ -238,6 +242,7 @@ export default function LiveRoomPage({ params }) {
       const result = await closeLiveAuctionDirectly(auctionItemId);
       if (!result.success) throw new Error(result.error || "Could not close this auction.");
       setIsAuctionClosed(true);
+      setIsSettled(true);
       setTimeLeft("00:00:00");
       if (result.closeNotificationError) setControlError(result.closeNotificationError);
     } catch (error) {
@@ -247,7 +252,7 @@ export default function LiveRoomPage({ params }) {
     }
   };
 
-  const handleLeaveRoom = () => router.push("/dashboard");
+  const handleLeaveRoom = () => window.location.assign("/dashboard?tab=live-auctions");
 
   const leadingBidders = new Map();
   for (const bid of [...bids].sort((left, right) => Number(right.amount) - Number(left.amount))) {
@@ -572,12 +577,12 @@ export default function LiveRoomPage({ params }) {
               <button
                 type="button"
                 onClick={handleCloseAuction}
-                disabled={isUpdatingControls || isAuctionClosed}
+                disabled={isUpdatingControls || isSettled}
                 className="flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold disabled:opacity-50"
                 style={{ backgroundColor: "rgba(239,68,68,0.08)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.15)" }}
               >
                 {isUpdatingControls ? <Loader2 size={14} className="animate-spin" /> : <Power size={14} />}
-                End auction
+                {isSettled ? "Auction settled" : isAuctionClosed ? "Settle auction" : "End auction"}
               </button>
               {controlError && <p className="mt-2 text-xs text-rose-400" role="alert">{controlError}</p>}
             </div>

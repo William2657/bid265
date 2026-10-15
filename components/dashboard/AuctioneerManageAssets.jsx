@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Check,
   ChevronDown,
@@ -15,17 +16,19 @@ import {
   PackageX,
   Plus,
   RefreshCw,
+  RotateCcw,
   Search,
   ShoppingBag,
   Trash2,
   X,
 } from "lucide-react";
-import { deleteListing, updateListingDetails } from "@/app/actions/manageListings";
+import { deleteListing, reuseAuction, updateListingDetails } from "@/app/actions/manageListings";
 import { toggleDailySaleAvailability } from "@/app/actions/createDailySale";
 
 const inputClass = "w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-input)] px-3 py-2.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-primary)]";
 
 export default function AuctioneerManageAssets({ initialTab = "daily-sales" }) {
+  const router = useRouter();
   const isDailySales = initialTab === "daily-sales";
   const isAuctions = initialTab === "auctions";
   const [dailySales, setDailySales] = useState([]);
@@ -41,6 +44,8 @@ export default function AuctioneerManageAssets({ initialTab = "daily-sales" }) {
   const [busyId, setBusyId] = useState(null);
   const [editListing, setEditListing] = useState(null);
   const [editError, setEditError] = useState("");
+  const [reuseListing, setReuseListing] = useState(null);
+  const [reuseSchedule, setReuseSchedule] = useState({ startTime: "", endTime: "" });
 
   const loadListings = useCallback(async () => {
     try {
@@ -116,8 +121,40 @@ export default function AuctioneerManageAssets({ initialTab = "daily-sales" }) {
       if (!result.success) throw new Error(result.error || "Could not update listing.");
       setEditListing(null);
       await loadListings();
+      router.refresh();
     } catch (saveError) {
       setEditError(saveError.message || "Could not update listing.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const startReuse = (listing) => {
+    const start = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    const toLocalInput = (date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+      .toISOString().slice(0, 16);
+    setEditError("");
+    setReuseListing(listing);
+    setReuseSchedule({ startTime: toLocalInput(start), endTime: toLocalInput(end) });
+  };
+
+  const handleReuse = async (event) => {
+    event.preventDefault();
+    if (!reuseListing) return;
+    setSaving(true);
+    setEditError("");
+    try {
+      const schedule = new FormData();
+      schedule.append("startTime", new Date(reuseSchedule.startTime).toISOString());
+      schedule.append("endTime", new Date(reuseSchedule.endTime).toISOString());
+      const result = await reuseAuction(reuseListing.id, schedule);
+      if (!result.success) throw new Error(result.error || "Could not schedule another auction.");
+      setReuseListing(null);
+      await loadListings();
+      router.refresh();
+    } catch (reuseError) {
+      setEditError(reuseError.message || "Could not schedule another auction.");
     } finally {
       setSaving(false);
     }
@@ -159,17 +196,19 @@ export default function AuctioneerManageAssets({ initialTab = "daily-sales" }) {
     <section className="space-y-5 pb-10">
       <header className="flex flex-col gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-sm font-bold text-[var(--color-text)]">{isDailySales ? "Daily Sales" : isAuctions ? "Auctions" : "Properties"}</h2>
+          <h2 className="text-sm font-bold text-[var(--color-text)]">{isDailySales ? "Daily Sales" : isAuctions ? "Manage Auctions" : "Properties"}</h2>
           <p className="mt-1 text-[11px] text-[var(--color-muted)]">
-            {isDailySales ? "Search, update, archive, and manage available stock." : isAuctions ? "Edit or archive scheduled auctions before bidding activity begins." : "Search, update, and archive sale or lease listings."}
+            {isDailySales ? "Search, update, archive, and manage available stock." : isAuctions ? "Reschedule untouched auctions or schedule unsold, settled properties again." : "Search, update, and archive sale or lease listings."}
           </p>
         </div>
-        <Link
-          href={`/dashboard/add-listing?mode=${isDailySales ? "daily-sale" : isAuctions ? "auction" : "property"}`}
-          className="inline-flex items-center justify-center gap-1 rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-xs font-bold text-white"
-        >
-          <Plus className="h-4 w-4" /> Add listing
-        </Link>
+        {!isAuctions && (
+          <Link
+            href={`/dashboard/add-listing?mode=${isDailySales ? "daily-sale" : "property"}`}
+            className="inline-flex items-center justify-center gap-1 rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-xs font-bold text-white"
+          >
+            <Plus className="h-4 w-4" /> Add listing
+          </Link>
+        )}
       </header>
 
       <div className="space-y-3">
@@ -293,9 +332,14 @@ export default function AuctioneerManageAssets({ initialTab = "daily-sales" }) {
                           {busyId === listing.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : listing.isAvailable ? <PackageCheck className="h-3.5 w-3.5 text-emerald-500" /> : <PackageX className="h-3.5 w-3.5 text-rose-400" />}
                         </button>
                       )}
-                      <button type="button" onClick={() => startEdit(listing)} disabled={!manageable} aria-label={`Edit ${listing.title}`} title={!manageable ? "This listing cannot be edited after it has activity or is no longer available." : "Edit listing"} className="rounded-lg border border-[var(--color-border)] p-2 text-[var(--color-muted)] hover:text-[var(--color-primary)] disabled:opacity-40">
+                                    <button type="button" onClick={() => startEdit(listing)} disabled={!manageable} aria-label={`Edit ${listing.title}`} title={!manageable ? "This listing cannot be edited after it has activity or is no longer available." : "Edit or reschedule listing"} className="rounded-lg border border-[var(--color-border)] p-2 text-[var(--color-muted)] hover:text-[var(--color-primary)] disabled:opacity-40">
                         <Edit2 className="h-3.5 w-3.5" />
                       </button>
+                      {isAuctions && listing.canReuse && (
+                        <button type="button" onClick={() => startReuse(listing)} disabled={saving} aria-label={`Schedule ${listing.title} again`} title="Schedule this unsold auction again" className="rounded-lg border border-[var(--color-border)] p-2 text-[var(--color-muted)] hover:text-[var(--color-primary)] disabled:opacity-40">
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       <button type="button" onClick={() => handleDelete(listing)} disabled={busyId === listing.id || !archivable} aria-label={`Archive ${listing.title}`} title={!archivable ? "This listing cannot be archived after it has activity or is no longer available." : "Archive listing"} className="rounded-lg border border-[var(--color-border)] p-2 text-[var(--color-muted)] hover:text-rose-400 disabled:opacity-40">
                         {busyId === listing.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                       </button>
@@ -383,6 +427,36 @@ export default function AuctioneerManageAssets({ initialTab = "daily-sales" }) {
               <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                 Save changes
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+      {reuseListing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="reuse-auction-title">
+          <form onSubmit={handleReuse} className="my-auto w-full max-w-lg space-y-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5">
+            <div className="flex items-center justify-between">
+              <h2 id="reuse-auction-title" className="text-lg font-bold text-[var(--color-text)]">Schedule auction again</h2>
+              <button type="button" onClick={() => setReuseListing(null)} aria-label="Close schedule form" className="rounded-lg p-1 text-[var(--color-muted)]"><X className="h-5 w-5" /></button>
+            </div>
+            <p className="text-sm text-[var(--color-muted)]">
+              Create a new auction for <span className="font-semibold text-[var(--color-text)]">{reuseListing.title}</span>.
+              The previous auction and its transaction history will remain unchanged.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block space-y-1 text-xs font-semibold text-[var(--color-muted)]">Auction starts
+                <input required type="datetime-local" value={reuseSchedule.startTime} onChange={(event) => setReuseSchedule((current) => ({ ...current, startTime: event.target.value }))} className={inputClass} />
+              </label>
+              <label className="block space-y-1 text-xs font-semibold text-[var(--color-muted)]">Auction ends
+                <input required type="datetime-local" value={reuseSchedule.endTime} onChange={(event) => setReuseSchedule((current) => ({ ...current, endTime: event.target.value }))} className={inputClass} />
+              </label>
+            </div>
+            {editError && <p className="text-sm text-rose-400" role="alert">{editError}</p>}
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setReuseListing(null)} className="rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text)]">Cancel</button>
+              <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+                Schedule again
               </button>
             </div>
           </form>

@@ -227,9 +227,10 @@ export default function AuctioneerDashboard({ user, auctionItems: initialAuction
           <div className="flex flex-col sm:flex-row gap-2 items-center w-full md:w-auto">
             <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 px-3 py-2 rounded-xl focus:outline-none w-full sm:w-auto">
               <option value="VEHICLE">🚗 Vehicles & Cars</option>
-              <option value="REAL_ESTATE">🏠 Real Estate Property</option>
+              <option value="LAND">🌍 Land / Plot</option>
+              <option value="COMMERCIAL_BUILDING">🏢 Commercial Building</option>
+              <option value="RESIDENTIAL_BUILDING">🏠 Residential Building</option>
               <option value="ELECTRONICS">💻 Tech & Electronics</option>
-              <option value="MACHINERY">⚙️ Heavy Machinery</option>
               <option value="OTHER">✨ OTHER / CUSTOM CATEGORY</option>
             </select>
             {selectedCategory === "OTHER" && (

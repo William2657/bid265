@@ -108,7 +108,7 @@ export async function PATCH(request) {
     const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
     const phoneNumber = typeof body?.phoneNumber === "string" ? body.phoneNumber.trim() : "";
     const role = body?.role;
-    const isVerified = body?.isVerified;
+    const requestedVerification = body?.isVerified;
     const optionalText = (value, maxLength) => {
       if (value === null || value === undefined || value === "") return null;
       if (typeof value !== "string" || value.trim().length > maxLength) return undefined;
@@ -127,9 +127,14 @@ export async function PATCH(request) {
     if (!name || name.length > 191 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 191) {
       return NextResponse.json({ error: "Enter a valid name and email address." }, { status: 400 });
     }
-    if (phoneNumber.length > 20 || !userRoles.includes(role) || typeof isVerified !== "boolean") {
+    if (
+      phoneNumber.length > 20 ||
+      !userRoles.includes(role) ||
+      (role === "AUCTIONEER" && typeof requestedVerification !== "boolean")
+    ) {
       return NextResponse.json({ error: "Enter a valid phone number, role, and verification status." }, { status: 400 });
     }
+    const isVerified = role === "AUCTIONEER" ? requestedVerification : true;
     if ([postalAddress, addressLine1, addressLine2, district, businessName, nationalId].includes(undefined)) {
       return NextResponse.json({ error: "One or more address or organization fields exceed the allowed length." }, { status: 400 });
     }

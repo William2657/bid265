@@ -2,17 +2,21 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, Download, FileText, Loader2, Pencil, Receipt, RefreshCw, Trash2, X } from "lucide-react";
-import { deletePayment, fetchPayments, formatAmount, formatDate, getStatusColor, updatePayment } from "@/lib/payments";
+import { deletePayment, fetchFilteredPayments, fetchPayments, formatAmount, formatDate, getStatusColor, updatePayment } from "@/lib/payments";
 
 export default function PaymentHistory({ role }) {
   const isAdmin = role === "ADMIN";
   const [payments, setPayments] = useState([]);
+  const [auctioneers, setAuctioneers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [operationMessage, setOperationMessage] = useState("");
   const [operationError, setOperationError] = useState("");
   const [selectedPayment, setSelectedPayment] = useState(null);
+  const [auctioneerFilter, setAuctioneerFilter] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [editingPurpose, setEditingPurpose] = useState(false);
   const [purposeDraft, setPurposeDraft] = useState("");
   const [saving, setSaving] = useState(false);
@@ -23,14 +27,22 @@ export default function PaymentHistory({ role }) {
     setError("");
 
     try {
-      setPayments(await fetchPayments());
+      const result = isAdmin
+        ? await fetchFilteredPayments({
+        auctioneerId: auctioneerFilter,
+        from: dateFrom,
+        to: dateTo,
+        })
+        : { payments: await fetchPayments(), auctioneers: [] };
+      setPayments(result.payments);
+      setAuctioneers(result.auctioneers);
     } catch (loadError) {
       setError(loadError.message || "Could not load payment history.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [isAdmin, auctioneerFilter, dateFrom, dateTo]);
 
   const handleUpdate = async (event) => {
     event.preventDefault();
@@ -40,7 +52,7 @@ export default function PaymentHistory({ role }) {
 
     try {
       const payment = await updatePayment(selectedPayment.reference, { purpose: purposeDraft });
-      setSelectedPayment(payment);
+      setSelectedPayment((current) => ({ ...current, ...payment }));
       setEditingPurpose(false);
       setOperationMessage("Payment description updated.");
       await loadPayments(true);
@@ -77,6 +89,7 @@ export default function PaymentHistory({ role }) {
     PROPERTY_PURCHASE: "Property purchase",
     PROPERTY_RENT: "Property rent",
   })[purpose] || purpose || "Payment";
+  const visiblePayments = payments;
 
   useEffect(() => {
     const timeout = setTimeout(() => loadPayments(), 0);
@@ -108,6 +121,26 @@ export default function PaymentHistory({ role }) {
         </p>
       )}
 
+      {isAdmin && (
+        <div className="grid gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 sm:grid-cols-3">
+          <label className="space-y-1 text-xs font-semibold text-[var(--color-muted)]">
+            <span>Filter by auctioneer</span>
+            <select value={auctioneerFilter} onChange={(event) => setAuctioneerFilter(event.target.value)} className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-input)] px-3 py-2.5 text-sm text-[var(--color-text)]">
+              <option value="">All auctioneers</option>
+              {auctioneers.map((auctioneer) => <option key={auctioneer.id} value={auctioneer.id}>{auctioneer.name}</option>)}
+            </select>
+          </label>
+          <label className="space-y-1 text-xs font-semibold text-[var(--color-muted)]">
+            <span>From date</span>
+            <input type="date" value={dateFrom} max={dateTo || undefined} onChange={(event) => setDateFrom(event.target.value)} className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-input)] px-3 py-2 text-sm text-[var(--color-text)]" />
+          </label>
+          <label className="space-y-1 text-xs font-semibold text-[var(--color-muted)]">
+            <span>To date</span>
+            <input type="date" value={dateTo} min={dateFrom || undefined} onChange={(event) => setDateTo(event.target.value)} className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-input)] px-3 py-2 text-sm text-[var(--color-text)]" />
+          </label>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex justify-center py-16" role="status" aria-label="Loading payment history">
           <Loader2 className="h-7 w-7 animate-spin text-[var(--color-primary)]" />
@@ -120,11 +153,11 @@ export default function PaymentHistory({ role }) {
             Try again
           </button>
         </div>
-      ) : payments.length === 0 ? (
+      ) : visiblePayments.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-16 text-center">
           <FileText className="h-9 w-9 text-[var(--color-muted)]" />
-          <p className="text-sm font-semibold text-[var(--color-text)]">No payment history</p>
-          <p className="text-xs text-[var(--color-muted)]">Transactions will appear here when they are recorded.</p>
+          <p className="text-sm font-semibold text-[var(--color-text)]">{payments.length ? "No payments match these filters" : "No payment history"}</p>
+          <p className="text-xs text-[var(--color-muted)]">{payments.length ? "Change the auctioneer or date range to see other payments." : "Transactions will appear here when they are recorded."}</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -140,10 +173,12 @@ export default function PaymentHistory({ role }) {
               </tr>
             </thead>
             <tbody>
-              {payments.map((payment) => (
+              {visiblePayments.map((payment) => (
                 <tr key={payment.id} className="border-b border-[var(--color-border)] last:border-0">
                   <td className="px-3 py-4">
                     <p className="text-sm font-semibold text-[var(--color-text)]">{getPurposeLabel(payment.purpose)}</p>
+                    {payment.listingTitle && <p className="mt-1 text-xs text-[var(--color-muted)]">{payment.listingTitle}</p>}
+                    {isAdmin && payment.auctioneerName && <p className="mt-1 text-xs text-[var(--color-muted)]">Auctioneer: {payment.auctioneerName}</p>}
                     <p className="mt-1 font-mono text-[10px] text-[var(--color-muted)]">{payment.reference}</p>
                   </td>
                   <td className="px-3 py-4 text-xs text-[var(--color-muted)]">{formatDate(payment.createdAt)}</td>
@@ -230,6 +265,8 @@ export default function PaymentHistory({ role }) {
 
             <dl className="space-y-4 text-sm">
               <div className="flex justify-between gap-4"><dt className="text-[var(--color-muted)]">Purpose</dt><dd className="text-right font-semibold">{getPurposeLabel(selectedPayment.purpose)}</dd></div>
+              {selectedPayment.listingTitle && <div className="flex justify-between gap-4"><dt className="text-[var(--color-muted)]">Asset / item</dt><dd className="text-right font-semibold">{selectedPayment.listingTitle}</dd></div>}
+              {selectedPayment.auctioneerName && <div className="flex justify-between gap-4"><dt className="text-[var(--color-muted)]">Auctioneer / seller</dt><dd className="text-right font-semibold">{selectedPayment.auctioneerName}</dd></div>}
               <div className="flex justify-between gap-4"><dt className="text-[var(--color-muted)]">Amount</dt><dd className="text-right font-bold">{formatAmount(selectedPayment.amount)}</dd></div>
               <div className="flex justify-between gap-4"><dt className="text-[var(--color-muted)]">Status</dt><dd className={`text-right font-semibold capitalize ${getStatusColor(selectedPayment.gatewayStatus)}`}>{selectedPayment.gatewayStatus}</dd></div>
               <div className="flex justify-between gap-4"><dt className="text-[var(--color-muted)]">Date</dt><dd className="text-right">{formatDate(selectedPayment.createdAt)}</dd></div>

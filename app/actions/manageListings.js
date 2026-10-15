@@ -14,7 +14,7 @@ import {
   sales,
 } from "@/lib/db/schema";
 import { storeAssetImage, validateImageFile } from "@/lib/imageStorage";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 async function getManager() {
   const session = await auth();
@@ -62,10 +62,7 @@ async function hasAuctionActivity(tx, item) {
 }
 
 async function canEditAuction(tx, item) {
-  const now = new Date();
   return item.status === "UPCOMING" &&
-    item.startTime > now &&
-    item.endTime > now &&
     !(await hasAuctionActivity(tx, item));
 }
 
@@ -119,7 +116,7 @@ export async function updateListingDetails(kind, listingId, details) {
           return { success: false, error: "Auction listing not found." };
         }
         if (!(await canEditAuction(tx, auction))) {
-          return { success: false, error: "This auction can only be edited before it starts and before any bidder registers, pays, or places a bid." };
+          return { success: false, error: "This auction can only be edited while scheduled and before any bidder registers, pays, or places a bid." };
         }
       } else {
         [asset] = await tx.select().from(assets).where(and(
@@ -186,6 +183,9 @@ export async function updateListingDetails(kind, listingId, details) {
           biddingFee: biddingDeposit,
           startTime,
           endTime,
+          status: "UPCOMING",
+          liveRoomId: null,
+          reservePriceDisclosed: false,
         }).where(eq(auctionItems.id, id));
         await storeReplacementImage(tx, id, details);
       } else {
@@ -211,6 +211,101 @@ export async function updateListingDetails(kind, listingId, details) {
   } catch (error) {
     console.error("[Update listing]", error);
     return { success: false, error: error.message || "Could not update listing." };
+  }
+}
+
+export async function reuseAuction(auctionItemId, schedule) {
+  try {
+    const user = await getManager();
+    const id = Number(auctionItemId);
+    if (!Number.isInteger(id) || id <= 0) {
+      return { success: false, error: "Invalid auction listing." };
+    }
+
+    const startTime = new Date(getValue(schedule, "startTime"));
+    const endTime = new Date(getValue(schedule, "endTime"));
+    if (
+      Number.isNaN(startTime.getTime()) ||
+      Number.isNaN(endTime.getTime()) ||
+      startTime <= new Date() ||
+      endTime <= startTime
+    ) {
+      return { success: false, error: "Choose a future auction start and an end time after it." };
+    }
+
+    const result = await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT "id" FROM "auction_items" WHERE "id" = ${id} FOR UPDATE`);
+      const [oldAuction] = await tx.select().from(auctionItems)
+        .where(eq(auctionItems.id, id)).limit(1);
+      if (!oldAuction) return { error: "Auction listing not found." };
+
+      await tx.execute(sql`SELECT "id" FROM "assets" WHERE "id" = ${oldAuction.assetId} FOR UPDATE`);
+      const [asset] = await tx.select().from(assets)
+        .where(eq(assets.id, oldAuction.assetId)).limit(1);
+      if (
+        !asset ||
+        asset.salesType !== "PROPERTY" ||
+        asset.listingType !== "AUCTION" ||
+        !asset.isListed ||
+        asset.isSold
+      ) {
+        return { error: "This auction cannot be reused." };
+      }
+      if (user.role !== "ADMIN" && asset.createdById !== Number(user.id)) {
+        return { error: "You can only reuse auctions that you created." };
+      }
+      if (oldAuction.status !== "CLOSED") {
+        return { error: "Only a closed auction can be reused." };
+      }
+
+      const [settlement] = await tx.select({ winnerId: auctionSettlements.winnerId })
+        .from(auctionSettlements)
+        .where(eq(auctionSettlements.auctionItemId, id))
+        .limit(1);
+      if (!settlement || settlement.winnerId !== null) {
+        return { error: "Only a settled auction without a winning bidder can be reused." };
+      }
+      const [anotherScheduledAuction] = await tx.select({ id: auctionItems.id })
+        .from(auctionItems)
+        .where(and(
+          eq(auctionItems.assetId, asset.id),
+          inArray(auctionItems.status, ["UPCOMING", "ACTIVE", "LIVE"]),
+        ))
+        .limit(1);
+      if (anotherScheduledAuction) {
+        return { error: "This property already has a scheduled or live auction." };
+      }
+
+      const [newAuction] = await tx.insert(auctionItems).values({
+        assetId: asset.id,
+        startingBid: oldAuction.startingBid,
+        reservePrice: oldAuction.reservePrice,
+        depositAmount: oldAuction.depositAmount,
+        biddingFee: oldAuction.biddingFee,
+        startTime,
+        endTime,
+        status: "UPCOMING",
+      }).returning({ id: auctionItems.id });
+
+      const previousImages = await tx.select({
+        url: assetImages.url,
+        isPrimary: assetImages.isPrimary,
+      }).from(assetImages).where(eq(assetImages.auctionItemId, id));
+      if (previousImages.length > 0) {
+        await tx.insert(assetImages).values(previousImages.map((image) => ({
+          ...image,
+          auctionItemId: newAuction.id,
+        })));
+      }
+
+      return { auctionItemId: newAuction.id };
+    });
+
+    if (result.error) return { success: false, error: result.error };
+    return { success: true, data: result };
+  } catch (error) {
+    console.error("[Reuse auction]", error);
+    return { success: false, error: error.message || "Could not reuse auction." };
   }
 }
 

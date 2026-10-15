@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Loader2, LayoutGrid, ArrowRight, Hourglass, Eye, CalendarPlus, Search, Filter, ChevronDown, Edit2 } from "lucide-react";
+import { Loader2, LayoutGrid, ArrowRight, Hourglass, Eye, CalendarPlus, Search, Filter, ChevronDown } from "lucide-react";
 import { getLiveKitToken, updateAuctionToLiveDirectly } from "@/app/actions/liveAuction";
 import { hasClearedAuctionGate } from "@/app/actions/auctionAccess";
 import AuctionAccessGate from "@/components/dashboard/AuctionAccessGate";
@@ -109,13 +109,6 @@ export default function AuctioneerLiveConsole({ auctionItems = [], onItemsUpdate
           <p className="mt-1 text-[11px] text-[var(--color-muted)]">Schedule an auction or manage your scheduled and live auctions.</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <button
-            type="button"
-            onClick={() => router.push("/dashboard?tab=manage-auctions")}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] px-4 py-2.5 text-xs font-bold text-[var(--color-text)] transition hover:border-[var(--color-primary)]"
-          >
-            <Edit2 className="h-4 w-4" /> Edit / Remove Auctions
-          </button>
           <button
             type="button"
             onClick={() => router.push("/dashboard/add-listing?mode=auction")}
