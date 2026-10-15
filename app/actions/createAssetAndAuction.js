@@ -149,6 +149,9 @@ export async function createAssetAndAuction(formData) {
 
   } catch (error) {
     console.error("❌ Action Failure:", error);
-    throw new Error(error.message || "Failed to finalize database updates.");
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to finalize database updates.",
+    };
   }
 }
