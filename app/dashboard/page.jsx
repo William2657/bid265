@@ -1,7 +1,7 @@
 import { auth } from "../../auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { assets, auctionItems, auctionSettlements, bids, dailySales, sales, users } from "@/lib/db/schema";
+import { assets, auctionItems, auctionSettlements, bids, sales, users } from "@/lib/db/schema";
 import { and, count, desc, eq, inArray, sum } from "drizzle-orm";
 import DashboardLayoutFrame from "@/components/dashboard/DashboardLayoutFrame";
 
@@ -22,7 +22,6 @@ export default async function DashboardPage() {
   const isAuctioneer = user.role === "AUCTIONEER";
   let serializedAuctionItems = [];
   let dashboardStats = null;
-  let auctioneerDashboardData = { dailySales: [], properties: [] };
   let adminUserCounts = { BIDDER: 0, AUCTIONEER: 0, ADMIN: 0 };
   let recentlyApprovedAuctioneers = [];
   
@@ -98,51 +97,6 @@ export default async function DashboardPage() {
         : 0,
     };
 
-    const [dailySaleRows, propertyRows] = await Promise.all([
-      db.select({
-        id: dailySales.id,
-        title: assets.title,
-        description: assets.description,
-        location: assets.location,
-        category: assets.category,
-        price: dailySales.price,
-        stockCount: dailySales.stockCount,
-        isAvailable: dailySales.isAvailable,
-      }).from(dailySales)
-        .innerJoin(assets, eq(dailySales.assetId, assets.id))
-        .where(and(eq(assets.createdById, user.id), eq(assets.isListed, true)))
-        .orderBy(desc(dailySales.createdAt))
-        .limit(5),
-      db.select({
-        id: assets.id,
-        title: assets.title,
-        location: assets.location,
-        listingType: assets.listingType,
-        salePrice: assets.salePrice,
-        monthlyRent: assets.monthlyRent,
-        isSold: assets.isSold,
-      }).from(assets)
-        .where(and(
-          eq(assets.createdById, user.id),
-          eq(assets.salesType, "PROPERTY"),
-          inArray(assets.listingType, ["SALE", "LEASE"]),
-          eq(assets.isListed, true),
-        ))
-        .orderBy(desc(assets.createdAt))
-        .limit(5),
-    ]);
-
-    auctioneerDashboardData = {
-      dailySales: dailySaleRows.map((listing) => ({
-        ...listing,
-        price: Number(listing.price),
-      })),
-      properties: propertyRows.map((listing) => ({
-        ...listing,
-        salePrice: listing.salePrice ? Number(listing.salePrice) : null,
-        monthlyRent: listing.monthlyRent ? Number(listing.monthlyRent) : null,
-      })),
-    };
   } else if (user.role === "ADMIN") {
     const [roleTotals, recentAuctioneers] = await Promise.all([
       db.select({ role: users.role, total: count() })
@@ -175,7 +129,6 @@ export default async function DashboardPage() {
       serializedAuctionItems={serializedAuctionItems} 
       isAuctioneer={isAuctioneer} 
       dashboardStats={dashboardStats}
-      auctioneerDashboardData={auctioneerDashboardData}
       adminUserCounts={adminUserCounts}
       recentlyApprovedAuctioneers={recentlyApprovedAuctioneers}
     />

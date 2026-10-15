@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Loader2, LayoutGrid, ArrowRight, Hourglass, Eye, CalendarPlus, Search, Filter, ChevronDown } from "lucide-react";
 import { getLiveKitToken, updateAuctionToLiveDirectly } from "@/app/actions/liveAuction";
 import { hasClearedAuctionGate } from "@/app/actions/auctionAccess";
 import AuctionAccessGate from "@/components/dashboard/AuctionAccessGate";
+import AuctioneerAuctionControls from "@/components/dashboard/AuctioneerAuctionControls";
 import { useRouter } from "next/navigation";
 
 const createLiveRoomId = (itemId) => `room-lot-${itemId}-${Date.now()}`;
@@ -19,6 +20,59 @@ export default function AuctioneerLiveConsole({ auctionItems = [], onItemsUpdate
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [managementListings, setManagementListings] = useState({});
+  const [managementError, setManagementError] = useState("");
+
+  const loadManagementListings = useCallback(async () => {
+    try {
+      setManagementError("");
+      setManagementListings({});
+      const response = await fetch("/api/listings");
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Failed to load auction controls.");
+      const listings = result.auctions || [];
+      const listingsById = Object.fromEntries(listings.map((listing) => [listing.id, listing]));
+      setManagementListings(listingsById);
+      setItemsList((current) => current.map((item) => {
+        const listing = listingsById[item.id];
+        if (!listing) return item;
+        return {
+          ...item,
+          reservePrice: listing.reservePrice,
+          startingBid: listing.startingBid,
+          depositAmount: listing.entryFee,
+          biddingFee: listing.biddingDeposit,
+          startTime: listing.startTime,
+          endTime: listing.endTime,
+          status: listing.status,
+          asset: {
+            ...item.asset,
+            title: listing.title,
+            description: listing.description,
+            location: listing.clientName,
+            category: listing.category,
+          },
+        };
+      }));
+    } catch (error) {
+      setManagementError(error.message || "Failed to load auction controls.");
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(loadManagementListings, 0);
+    return () => clearTimeout(timer);
+  }, [loadManagementListings]);
+
+  const handleAuctionDeleted = (auctionId) => {
+    const updated = itemsList.filter((item) => item.id !== auctionId);
+    syncItemsList(updated);
+    setManagementListings((current) => {
+      const next = { ...current };
+      delete next[auctionId];
+      return next;
+    });
+  };
 
   const enterLiveRoom = async (roomId, auctionItemId) => {
     const access = await hasClearedAuctionGate(auctionItemId);
@@ -178,6 +232,12 @@ export default function AuctioneerLiveConsole({ auctionItems = [], onItemsUpdate
             </div>
           </div>
         )}
+        {managementError && (
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-red-500/20 bg-[var(--color-card)] px-4 py-3 text-xs text-red-400" role="alert">
+            <span>{managementError}</span>
+            <button type="button" onClick={loadManagementListings} className="font-bold underline">Retry</button>
+          </div>
+        )}
 
         {visibleActiveItems.length === 0 ? (
           <div className="bg-[var(--color-card)] border border-dashed border-[var(--color-border)] rounded-2xl p-8 text-center text-xs text-[var(--color-muted)]">
@@ -187,6 +247,7 @@ export default function AuctioneerLiveConsole({ auctionItems = [], onItemsUpdate
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {visibleActiveItems.map((item) => {
               const isLive = item.status === "LIVE" || item.status === "ACTIVE";
+              const isScheduled = item.status === "UPCOMING" || item.status === "SCHEDULED";
               
               return (
                 <div key={item.id} className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-4 md:p-5 shadow-sm flex flex-col justify-between gap-4">
@@ -216,6 +277,13 @@ export default function AuctioneerLiveConsole({ auctionItems = [], onItemsUpdate
                   </div>
 
                   <div className="pt-2 flex flex-col gap-2">
+                    {isScheduled && managementListings[item.id] && (
+                      <AuctioneerAuctionControls
+                        listing={managementListings[item.id]}
+                        onDeleted={handleAuctionDeleted}
+                        onUpdated={loadManagementListings}
+                      />
+                    )}
                     {!isLive ? (
                       <button
                         type="button"

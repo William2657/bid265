@@ -22,7 +22,6 @@ import {
   ShoppingBag,
   Home,
   Users,
-  Plus,
   CircleDollarSign,
   BadgeCheck,
 } from "lucide-react";
@@ -42,7 +41,7 @@ import AdminRefundManager from "@/components/dashboard/AdminRefundManager";
 import AuctioneerPasswordChange from "@/components/dashboard/AuctioneerPasswordChange";
 import AdminUserManager from "@/components/dashboard/AdminUserManager";
 
-export default function DashboardLayoutFrame({ user, serializedAuctionItems, isAuctioneer, dashboardStats = null, auctioneerDashboardData = { dailySales: [], properties: [] }, adminUserCounts = { BIDDER: 0, AUCTIONEER: 0, ADMIN: 0 }, recentlyApprovedAuctioneers = [], forceTab = null, addListingInitialMode = "property" }) {
+export default function DashboardLayoutFrame({ user, serializedAuctionItems, isAuctioneer, dashboardStats = null, adminUserCounts = { BIDDER: 0, AUCTIONEER: 0, ADMIN: 0 }, recentlyApprovedAuctioneers = [], forceTab = null, addListingInitialMode = "property" }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -432,8 +431,8 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
                     </section>
                   </div>
                 ) : isAuctioneer ? (
-                  <div className="bg-[var(--color-card)] p-6 rounded-2xl border border-[var(--color-border)] shadow-sm space-y-4">
-                    <div className="flex items-center justify-between">
+                  <div className="space-y-4 pb-8">
+                    <section className="flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-6 shadow-sm">
                       <div>
                         <h2 className="text-lg font-bold text-[var(--color-text)]">Auctioneer Dashboard</h2>
                         <p className="text-xs text-[var(--color-muted)] mt-1">
@@ -443,7 +442,7 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
                       <div className="w-10 h-10 rounded-xl bg-[var(--color-secondary)]/20 flex items-center justify-center">
                         <BarChart3 className="w-5 h-5 text-[var(--color-primary)]" />
                       </div>
-                    </div>
+                    </section>
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
                       {[
@@ -459,12 +458,9 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
                         </div>
                       ))}
                     </div>
-                    <section className="border-t border-[var(--color-border)] pt-5">
+                    <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5">
                       <h3 className="text-sm font-bold text-[var(--color-text)]">Quick actions</h3>
                       <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                        <button type="button" onClick={() => setActiveTab("add-listing")} className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-bold text-white">
-                          <Plus className="h-4 w-4" /> Add listing
-                        </button>
                         {[
                           { label: "Manage auctions", tab: "live-auctions", icon: Gavel, color: "text-blue-500", bg: "bg-blue-500/10" },
                           { label: "Manage daily sales", tab: "daily-sales", icon: ShoppingBag, color: "text-emerald-500", bg: "bg-emerald-500/10" },
@@ -481,69 +477,25 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
                         ))}
                       </div>
                     </section>
-                    <div className="grid gap-5 border-t border-[var(--color-border)] pt-5 lg:grid-cols-2">
-                      <section>
-                        <div className="mb-3 flex items-center justify-between gap-3">
-                          <h3 className="text-sm font-bold text-[var(--color-text)]">Recent auction listings</h3>
-                          <button type="button" onClick={() => setActiveTab("live-auctions")} className="text-xs font-bold text-[var(--color-primary)]">View all</button>
+                    <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <h3 className="text-sm font-bold text-[var(--color-text)]">Recent auctions</h3>
+                        <button type="button" onClick={() => setActiveTab("live-auctions")} className="text-xs font-bold text-[var(--color-primary)]">View all</button>
+                      </div>
+                      {serializedAuctionItems.length ? (
+                        <div className="space-y-2">
+                          {serializedAuctionItems.slice(0, 5).map((item) => (
+                            <article key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-input)] p-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-[var(--color-text)]">{item.asset.title}</p>
+                                <p className="mt-1 text-xs text-[var(--color-muted)]">{item.asset.location || "Location not provided"}</p>
+                              </div>
+                              <span className="shrink-0 rounded-full bg-[var(--color-primary)]/10 px-2.5 py-1 text-[10px] font-bold text-[var(--color-primary)]">{item.status}</span>
+                            </article>
+                          ))}
                         </div>
-                        {serializedAuctionItems.length ? (
-                          <div className="space-y-2">
-                            {serializedAuctionItems.slice(0, 5).map((item) => (
-                              <article key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-input)] p-3">
-                                <div className="min-w-0">
-                                  <p className="truncate text-sm font-semibold text-[var(--color-text)]">{item.asset.title}</p>
-                                  <p className="mt-1 text-xs text-[var(--color-muted)]">{item.asset.location || "Location not provided"}</p>
-                                </div>
-                                <span className="shrink-0 rounded-full bg-[var(--color-primary)]/10 px-2.5 py-1 text-[10px] font-bold text-[var(--color-primary)]">{item.status}</span>
-                              </article>
-                            ))}
-                          </div>
-                        ) : <p className="rounded-xl border border-dashed border-[var(--color-border)] p-4 text-sm text-[var(--color-muted)]">No auction listings yet.</p>}
-                      </section>
-                      <section>
-                        <div className="mb-3 flex items-center justify-between gap-3">
-                          <h3 className="text-sm font-bold text-[var(--color-text)]">Recent daily sales</h3>
-                          <button type="button" onClick={() => setActiveTab("daily-sales")} className="text-xs font-bold text-[var(--color-primary)]">View all</button>
-                        </div>
-                        {auctioneerDashboardData.dailySales.length ? (
-                          <div className="space-y-2">
-                            {auctioneerDashboardData.dailySales.map((listing) => (
-                              <article key={listing.id} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-input)] p-3">
-                                <div className="min-w-0">
-                                  <p className="truncate text-sm font-semibold text-[var(--color-text)]">{listing.title}</p>
-                                  <p className="mt-1 text-xs text-[var(--color-muted)]">{listing.location} · MWK {listing.price.toLocaleString()}</p>
-                                </div>
-                                <span className="shrink-0 rounded-full bg-[var(--color-primary)]/10 px-2.5 py-1 text-[10px] font-bold text-[var(--color-primary)]">
-                                  {listing.stockCount} {listing.stockCount === 1 ? "unit" : "units"} left
-                                </span>
-                              </article>
-                            ))}
-                          </div>
-                        ) : <p className="rounded-xl border border-dashed border-[var(--color-border)] p-4 text-sm text-[var(--color-muted)]">No daily sale listings yet.</p>}
-                      </section>
-                      <section className="lg:col-span-2">
-                        <div className="mb-3 flex items-center justify-between gap-3">
-                          <h3 className="text-sm font-bold text-[var(--color-text)]">Recent property listings</h3>
-                          <button type="button" onClick={() => setActiveTab("properties")} className="text-xs font-bold text-[var(--color-primary)]">View all</button>
-                        </div>
-                        {auctioneerDashboardData.properties.length ? (
-                          <div className="grid gap-2 sm:grid-cols-2">
-                            {auctioneerDashboardData.properties.map((property) => (
-                              <article key={property.id} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-input)] p-3">
-                                <div className="min-w-0">
-                                  <p className="truncate text-sm font-semibold text-[var(--color-text)]">{property.title}</p>
-                                  <p className="mt-1 text-xs text-[var(--color-muted)]">{property.location} · {property.listingType === "LEASE" ? `MWK ${property.monthlyRent?.toLocaleString() || 0}/month` : `MWK ${property.salePrice?.toLocaleString() || 0}`}</p>
-                                </div>
-                                <span className="shrink-0 rounded-full bg-[var(--color-primary)]/10 px-2.5 py-1 text-[10px] font-bold text-[var(--color-primary)]">
-                                  {property.isSold ? "Sold" : property.listingType === "LEASE" ? "For lease" : "For sale"}
-                                </span>
-                              </article>
-                            ))}
-                          </div>
-                        ) : <p className="rounded-xl border border-dashed border-[var(--color-border)] p-4 text-sm text-[var(--color-muted)]">No recent property listings yet.</p>}
-                      </section>
-                    </div>
+                      ) : <p className="rounded-xl border border-dashed border-[var(--color-border)] p-4 text-sm text-[var(--color-muted)]">No auction listings yet.</p>}
+                    </section>
                   </div>
                 ) : (
                   <BidderDashboard />
@@ -559,7 +511,6 @@ export default function DashboardLayoutFrame({ user, serializedAuctionItems, isA
                     auctionItems={serializedAuctionItems}
                     onItemsUpdate={(updated) => console.log("Broadcaster sync: ", updated.length)}
                   />
-                  <AuctioneerManageAssets initialTab="auctions" />
                 </div>
               ) : (
                 <BidderLiveConsole auctionItems={serializedAuctionItems} />
